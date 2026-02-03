@@ -9,7 +9,7 @@ import { connect, MqttClient } from 'mqtt';
     {
       provide: 'MQTT_CLIENT',
       useFactory: (configService: ConfigService): MqttClient => {
-        const brokerUrl = configService.get<string>('MQTT_BROKER_URL')!;
+        const brokerUrl = `mqtt://${configService.get<string>('MQTT_HOST')!}:${configService.get<string>('MQTT_PORT')!}`;
         const options = {
           clientId:
             configService.get<string>('MQTT_CLIENT_ID') ||

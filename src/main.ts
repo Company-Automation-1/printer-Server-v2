@@ -8,11 +8,18 @@ import {
   ResponseInterceptor,
   AllExceptionsFilter,
 } from './middlewares/response';
+import { MqttProxyMiddleware } from './middlewares/mqtt-proxy.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const port = process.env.PORT ?? 3000;
   const uploadPath = 'uploads';
+
+  //* **************************************************************
+  //* 全局配置 MQTT 代理中间件
+  //* **************************************************************
+  const mqttProxy = app.get(MqttProxyMiddleware); // 获取 MQTT 代理中间件实例
+  app.use(mqttProxy.use.bind(mqttProxy)); // 使用 MQTT 代理中间件
 
   //* **************************************************************
   //* 通过 useStaticAssets 方法将服务器本地的 uploads 目录暴露为静态资源目录
