@@ -3,10 +3,24 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { join } from 'path';
+import {
+  ResponseInterceptor,
+  AllExceptionsFilter,
+} from './middlewares/response';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const port = process.env.PORT ?? 3000;
+  const uploadPath = 'uploads';
+
+  //* **************************************************************
+  //* 通过 useStaticAssets 方法将服务器本地的 uploads 目录暴露为静态资源目录
+  //* **************************************************************
+  // 设置 prefix: `/${uploadPath}` 后，上传到 uploads 目录的文件可通过 http://localhost:端口号/uploads/文件名 直接访问。
+  app.useStaticAssets(join(__dirname, '..', uploadPath), {
+    prefix: `/${uploadPath}`,
+  });
 
   //* **************************************************************
   //* 启用 CORS
@@ -22,9 +36,21 @@ async function bootstrap() {
   });
 
   //* **************************************************************
+  //* 全局配置响应拦截器
+  //* 注意：拦截器执行顺序是后进先出（LIFO），所以先注册的会最后执行
+  //* **************************************************************
+  app.useGlobalInterceptors(new ResponseInterceptor());
+
+  //* **************************************************************
   //* 全局配置 ClassSerializerInterceptor 自动排除隐私字段
+  //* 执行顺序：ClassSerializerInterceptor（先执行） -> ResponseInterceptor（后执行）
   //* **************************************************************
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+
+  //* **************************************************************
+  //* 全局配置异常过滤器
+  //* **************************************************************
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   //* **************************************************************
   //* 全局配置 ValidationPipe 用于请求体验证和转换

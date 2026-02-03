@@ -1,19 +1,25 @@
-import { Controller, Post, Body, Get, Res } from '@nestjs/common';
+import { Controller, Get, Post, Res, Body } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrinterService } from './printer.service';
-import { OtaUpdatePrinterDto } from './dto/publish-printer.dto';
 import { SseGatewayService } from 'src/shared/sse-gateway.service';
+import { BaseController } from 'src/base/base.controller';
+import { LockPrinterDto } from './dto';
+import { ApiBody } from '@nestjs/swagger';
 
 @Controller('printer')
-export class PrinterController {
+export class PrinterController extends BaseController {
   constructor(
     private readonly printerService: PrinterService,
     private readonly sseGatewayService: SseGatewayService,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Post()
-  publishOtaUpdate(@Body() otaUpdatePrinterDto: OtaUpdatePrinterDto) {
-    return this.printerService.publishOtaUpdate(otaUpdatePrinterDto);
+  @Post('lock')
+  @ApiBody({ type: LockPrinterDto })
+  lockPrinter(@Body() lockPrinterDto: LockPrinterDto) {
+    this.printerService.lockPrinter(lockPrinterDto);
+    return this.responseService.success(null, '打印机锁定消息发送成功', 201);
   }
 
   @Get('events')

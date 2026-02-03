@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { OtaUpdatePrinterDto } from './dto/publish-printer.dto';
-import { MqttService } from 'src/shared/mqtt.service';
-import { SseGatewayService } from 'src/shared/sse-gateway.service';
+import { MqttService } from '../shared/mqtt.service';
+import { SseGatewayService } from '../shared/sse-gateway.service';
+import { LockPrinterDto } from './dto';
 
 @Injectable()
 export class PrinterService implements OnModuleInit {
@@ -11,6 +11,12 @@ export class PrinterService implements OnModuleInit {
     private readonly mqttService: MqttService,
     private readonly sseGatewayService: SseGatewayService,
   ) {}
+
+  // printer/data/{MAC}/lock，payload: lock/unlock
+  lockPrinter(lockPrinterDto: LockPrinterDto) {
+    const { printerId, status } = lockPrinterDto;
+    this.mqttService.publish(`printer/data/${printerId}/lock`, status);
+  }
 
   onModuleInit() {
     const subscribeToTopic = () => {
@@ -38,15 +44,5 @@ export class PrinterService implements OnModuleInit {
         );
       }
     });
-  }
-
-  publishOtaUpdate(otaUpdatePrinterDto: OtaUpdatePrinterDto): void {
-    const { printerId, version, url } = otaUpdatePrinterDto;
-
-    const topic = printerId
-      ? `printer/data/${printerId}/ota/update`
-      : 'printer/ota/broadcast/update';
-
-    this.mqttService.publish(topic, JSON.stringify({ version, url }));
   }
 }

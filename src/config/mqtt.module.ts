@@ -13,7 +13,7 @@ import { connect, MqttClient } from 'mqtt';
         const options = {
           clientId:
             configService.get<string>('MQTT_CLIENT_ID') ||
-            `client_${Date.now()}`,
+            `Server_${Date.now()}`,
           username: configService.get<string>('MQTT_USERNAME')!,
           password: configService.get<string>('MQTT_PASSWORD')!,
           clean: true,
