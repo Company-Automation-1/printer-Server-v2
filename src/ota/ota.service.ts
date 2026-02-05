@@ -31,8 +31,8 @@ export class OtaService {
     const { printerId, version, url } = publishOtaDto;
 
     const topic = printerId
-      ? `printer/data/${printerId}/ota/update`
-      : 'printer/ota/broadcast/update';
+      ? `server/${printerId}/ota/update`
+      : 'server/ota/broadcast/update';
 
     this.mqttService.publish(topic, JSON.stringify({ version, url }));
     return Promise.resolve(true);
