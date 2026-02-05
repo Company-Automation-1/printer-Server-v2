@@ -14,7 +14,8 @@ src/
         ├── storage.tokens.ts       # 依赖注入 Token
         ├── storage.module.ts       # StorageModule - 业务模块（提供 StorageService）
         ├── storage.service.ts      # StorageService - 用户使用的服务
-        └── local.storage.ts        # LocalStorage - 具体实现
+        ├── local.storage.ts        # LocalStorage - 具体实现
+        └── minio.storage.ts        # MinioStorage - MinIO 实现
 ```
 
 ## 🔄 依赖关系
@@ -82,3 +83,17 @@ export class SomeService {
 - **可扩展**：新增存储类型只需添加实现类
 - **类型安全**：接口约束保证实现一致性
 - **易测试**：可以轻松 mock Storage 实现
+
+## MinIO 配置
+
+当 `STORAGE_TYPE=minio` 时，需设置以下环境变量：
+
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| STORAGE_TYPE | 是 | 设为 `minio` |
+| STORAGE_BUCKET | 是 | 桶名 |
+| STORAGE_BASE_URL | 是 | 文件访问根 URL（如 `https://minio.example.com/bucket`） |
+| STORAGE_ACCESS_KEY | 是 | MinIO 访问密钥 |
+| STORAGE_SECRET_KEY | 是 | MinIO 秘密密钥 |
+| STORAGE_ENDPOINT | 是 | API 地址，支持 `host` 或 `host:port`，默认端口 9000 |
+| STORAGE_SSL | 否 | 是否 HTTPS，默认 false |

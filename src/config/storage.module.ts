@@ -20,7 +20,7 @@ import { StorageConfig, StorageType } from '../shared/storage/storage.config';
           accessKey: configService.get<string>('STORAGE_ACCESS_KEY'),
           secretKey: configService.get<string>('STORAGE_SECRET_KEY'),
           endpoint: configService.get<string>('STORAGE_ENDPOINT'),
-          ssl: configService.get<boolean>('STORAGE_SSL'),
+          ssl: configService.get<string>('STORAGE_SSL') === 'true',
           region: configService.get<string>('STORAGE_REGION'),
         };
       },
