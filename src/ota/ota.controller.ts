@@ -40,7 +40,12 @@ export class OtaController extends BaseController {
   async uploadOta(
     @UploadedFile(
       new ParseFilePipe({
-        validators: [new FileTypeValidator({ fileType: /.*/ })],
+        validators: [
+          new FileTypeValidator({
+            fileType: /.*/,
+            fallbackToMimetype: true,
+          }),
+        ],
       }),
     )
     file: Express.Multer.File,
