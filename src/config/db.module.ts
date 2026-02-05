@@ -12,13 +12,15 @@ const env = ['dev', 'test', 'prod'];
       useFactory: (config: ConfigService) => {
         const nodeEnv = config.get<string>('NODE_ENV') ?? 'dev';
         const effectiveEnv = env.includes(nodeEnv) ? nodeEnv : 'dev';
+        const username = config.get<string>('DB_USERNAME');
         return {
           type: 'mongodb',
           host: config.get<string>('DB_HOST')!,
           port: config.get<number>('DB_PORT')!,
-          username: config.get<string>('DB_USERNAME'),
+          username,
           password: config.get<string>('DB_PASSWORD'),
           database: config.get<string>('DB_DATABASE'),
+          ...(username && { authSource: 'admin' }), // 用户创建在 admin，认证库需指定
           synchronize: effectiveEnv === 'dev', // 开发环境时同步数据库结构
           logging: effectiveEnv === 'dev', // 开发环境时打印数据库日志
           autoLoadEntities: true,
