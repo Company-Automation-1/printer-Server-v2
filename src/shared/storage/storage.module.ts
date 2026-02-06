@@ -4,6 +4,7 @@ import type { Storage } from './storage';
 import { StorageService } from './storage.service';
 import { LocalStorage } from './local.storage';
 import { MinioStorage } from './minio.storage';
+import { TosStorage } from './tos.storage';
 import { StorageConfigModule } from '../../config/storage.module';
 import { STORAGE } from './storage.tokens';
 
@@ -30,6 +31,8 @@ import { STORAGE } from './storage.tokens';
             return new LocalStorage(config);
           case StorageType.MINIO:
             return new MinioStorage(config);
+          case StorageType.TOS:
+            return new TosStorage(config);
           case StorageType.OSS:
           case StorageType.S3:
             throw new Error(

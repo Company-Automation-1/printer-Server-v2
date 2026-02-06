@@ -4,6 +4,7 @@
 export enum StorageType {
   LOCAL = 'local',
   MINIO = 'minio',
+  TOS = 'tos',
   OSS = 'oss',
   S3 = 's3',
 }
