@@ -1,8 +1,14 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { matchTopic } from '../lib';
 import { MqttService } from '../shared/mqtt.service';
 import { SseGatewayService } from '../shared/sse-gateway.service';
-import { LockPrinterDto } from './dto';
+import { PrinterRepository } from '../repositories';
+import { LockPrinterDto, UnlockPrinterDto } from './dto';
 import { PrinterDataPayload, PrinterInitPayload } from './topic.payload.type';
 
 @Injectable()
@@ -12,11 +18,25 @@ export class PrinterService implements OnModuleInit {
   constructor(
     private readonly mqttService: MqttService,
     private readonly sseGatewayService: SseGatewayService,
+    private readonly printerRepository: PrinterRepository,
   ) {}
 
   lockPrinter(lockPrinterDto: LockPrinterDto) {
-    const { printerId, status } = lockPrinterDto;
-    this.mqttService.publish(`server/${printerId}/lock`, status);
+    const { printerId } = lockPrinterDto;
+    this.mqttService.publish(`server/${printerId}/lock`, 'lock');
+  }
+
+  unlockPrinter(unlockPrinterDto: UnlockPrinterDto) {
+    const { printerId } = unlockPrinterDto;
+    this.mqttService.publish(`server/${printerId}/lock`, 'unlock');
+  }
+
+  async getPrinterCounters(pid: string) {
+    const printerId = pid.replace(/-/g, ':');
+    const printer = await this.printerRepository.findByPrinterId(printerId);
+    if (!printer) throw new NotFoundException('打印机不存在');
+    // return { printer_id: printer.printerId, ...printer };
+    return printer;
   }
 
   /**
@@ -71,9 +91,22 @@ export class PrinterService implements OnModuleInit {
     }
   }
 
-  private handleData(topic: string, message: Buffer) {
-    const mac = this.TopicToMac(topic, 1);
+  private async handleData(topic: string, message: Buffer) {
     const data = JSON.parse(message.toString()) as PrinterDataPayload;
+    const mac = this.TopicToMac(topic, 1);
+    await this.printerRepository.upsert(
+      {
+        printerId: data.mac,
+        serial: data.serial,
+        s_total: data.st,
+        bw_cp: data.bw_copies,
+        bw_p: data.bw_prints,
+        c_cp: data.col_copies,
+        c_p: data.col_prints,
+      },
+      ['printerId'],
+    );
+    // this.logger.debug(`[${data.mac}] data saved`);
     console.log(`[${mac}] ${JSON.stringify(data)}`);
   }
 

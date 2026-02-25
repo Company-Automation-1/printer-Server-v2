@@ -38,10 +38,13 @@ export class ResponseUtil {
 
     const status = httpException.getStatus();
     const response = httpException.getResponse();
-    const message =
+    const raw =
       typeof response === 'string'
         ? response
-        : (response as { message?: string }).message || 'Internal server error';
+        : (response as { message?: string | string[] }).message;
+    const message = Array.isArray(raw)
+      ? raw.join('; ')
+      : raw || 'Internal server error';
 
     return this.error(message, status);
   }

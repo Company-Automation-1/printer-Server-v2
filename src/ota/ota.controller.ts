@@ -21,7 +21,6 @@ import {
 import { OtaService } from './ota.service';
 import { UploadOtaDto, PublishOtaDto } from './dto';
 import { Ota } from '../entity/ota.entity';
-import { ObjectId } from 'mongodb';
 import { BaseController } from '../base/base.controller';
 import { FormattedResponse } from '../middlewares/response';
 
@@ -42,8 +41,8 @@ export class OtaController extends BaseController {
       new ParseFilePipe({
         validators: [
           new FileTypeValidator({
-            fileType: /.*/,
-            fallbackToMimetype: true,
+            fileType: /.*/, // 允许所有文件类型
+            fallbackToMimetype: true, // 如果文件类型无法确定，则使用 MIME 类型
           }),
         ],
       }),
@@ -75,7 +74,7 @@ export class OtaController extends BaseController {
   @Get(':id')
   @ApiOkResponse({ type: () => Ota })
   async findOne(@Param('id') id: string): Promise<FormattedResponse<Ota>> {
-    const result = await this.otaService.findOne(new ObjectId(id));
+    const result = await this.otaService.findOne(+id);
     if (!result) {
       throw new NotFoundException('OTA 不存在');
     }
@@ -84,7 +83,7 @@ export class OtaController extends BaseController {
 
   @Delete(':id')
   async delete(@Param('id') id: string): Promise<FormattedResponse<boolean>> {
-    const result = await this.otaService.delete(new ObjectId(id));
+    const result = await this.otaService.delete(+id);
     return this.responseService.success(result, '固件删除成功', 200);
   }
 }

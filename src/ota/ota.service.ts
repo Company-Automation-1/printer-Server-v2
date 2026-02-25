@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, ObjectId } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { StorageService } from '../shared/storage';
 import { UploadOtaDto } from './dto/upload-ota.dto';
 import { OtaRepository } from '../repositories';
@@ -42,26 +42,22 @@ export class OtaService {
     return this.otaRepository.find();
   }
 
-  async findOne(id: ObjectId): Promise<Ota | null> {
-    return this.otaRepository.findOne({ where: { _id: id } });
+  async findOne(id: number): Promise<Ota | null> {
+    return this.otaRepository.findOne({ where: { id } });
   }
 
   /**
    * 事务：删除 OTA 并同时删除存储文件（需要原子性）
    */
-  async delete(id: ObjectId): Promise<boolean> {
+  async delete(id: number): Promise<boolean> {
     // 使用显式事务，确保多个操作的原子性
     await this.dataSource.transaction(async (transactionalEntityManager) => {
       // 在事务中使用事务的 EntityManager 获取 Repository
       const otaRepo = transactionalEntityManager.getRepository(Ota);
-
-      // 查找要删除的记录
-      const ota = await otaRepo.findOne({ where: { _id: id } });
+      const ota = await otaRepo.findOne({ where: { id } });
       if (!ota) {
         throw new NotFoundException('OTA not found');
       }
-
-      // 删除数据库记录
       await otaRepo.delete(id);
 
       // 删除存储文件（如果这一步失败，整个事务会回滚）

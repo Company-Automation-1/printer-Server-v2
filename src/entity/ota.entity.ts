@@ -1,20 +1,14 @@
-import { Entity, ObjectIdColumn, ObjectId, Column } from 'typeorm';
-import { Transform } from 'class-transformer';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
-@Entity()
+@Entity('pre_ota')
+@Index(['key'])
 export class Ota {
-  @ObjectIdColumn()
-  @Transform(({ value }: { value: ObjectId }) => value.toString(), {
-    toPlainOnly: true,
-  }) // 序列化(Class → Plain Object) 将 ObjectId 转换为字符串
-  // @Transform(({ value }: { value: string }) => new ObjectId(value), {
-  //   toClassOnly: true,
-  // }) // 反序列化(Plain Object → Class) 将字符串转换为 ObjectId
-  @ApiProperty({ type: String, description: 'OTA ID' })
-  _id: ObjectId;
+  @PrimaryGeneratedColumn()
+  @ApiProperty({ description: 'OTA ID' })
+  id: number;
 
-  @Column()
+  @Column({ unique: true })
   @ApiProperty({ description: '版本号' })
   version: string;
 
