@@ -2,7 +2,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UploadOtaDto {
-  @ApiProperty({ description: '固件版本号' })
+  /** 固件版本号 @example 1.0.0 */
   @IsString()
   @IsNotEmpty()
   version: string;

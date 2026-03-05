@@ -1,8 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
 
 export class UnlockPrinterDto {
-  @ApiProperty({ description: '打印机ID' })
+  /** 打印机ID(MAC) @example 3E:71:BF:7F:05:2B */
   @IsString()
   @IsNotEmpty()
   printerId: string;

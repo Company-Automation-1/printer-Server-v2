@@ -1,22 +1,21 @@
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('pre_ota')
 @Index(['key'])
 export class Ota {
+  /** OTA ID */
   @PrimaryGeneratedColumn()
-  @ApiProperty({ description: 'OTA ID' })
   id: number;
 
+  /** 版本号 */
   @Column({ unique: true })
-  @ApiProperty({ description: '版本号' })
   version: string;
 
+  /** 存储键 */
   @Column()
-  @ApiProperty({ description: '存储键' })
   key: string;
 
+  /** 文件URL */
   @Column()
-  @ApiProperty({ description: '文件URL' })
   url: string;
 }

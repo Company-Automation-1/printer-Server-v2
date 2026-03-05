@@ -38,7 +38,7 @@ async function bootstrap() {
       process.env.CORS_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // 允许的请求方法，默认允许所有
     credentials: process.env.CORS_CREDENTIALS === 'true', // 是否允许携带 cookie
     allowedHeaders:
-      'Content-Type,Authorization,Accept,X-Requested-With,X-HTTP-Method-Override,X-File-Name', // 允许的请求头
+      'Content-Type,Authorization,X-API-Key,Accept,X-Requested-With,X-HTTP-Method-Override,X-File-Name', // 允许的请求头
     exposedHeaders: 'Content-Range,X-Content-Range,X-File-Name', // 暴露的响应头
   });
 
@@ -77,20 +77,10 @@ async function bootstrap() {
   //* Swagger 配置
   //* **************************************************************
   const config = new DocumentBuilder()
-    .setTitle('SERVER API')
-    .setDescription('SERVER API 接口文档')
+    .setTitle('打印机管理服务 API')
+    .setDescription('打印机设备管理、固件 OTA、MQTT 通信接口')
     .setVersion('2.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: '输入 JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
+    .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'api-key')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document, {

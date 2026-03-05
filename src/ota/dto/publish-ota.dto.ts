@@ -1,18 +1,17 @@
 import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
 
 export class PublishOtaDto {
-  @ApiProperty({ description: '打印机ID' })
+  /** 打印机ID，不传则广播到所有设备 */
   @IsString()
   @IsOptional()
   printerId?: string;
 
-  @ApiProperty({ description: '固件版本号' })
+  /** 固件版本号 @example 1.0.0 */
   @IsString()
   @IsNotEmpty()
   version: string;
 
-  @ApiProperty({ description: '固件url' })
+  /** 固件下载 URL @example http://example.com/ota/firmware.bin */
   @IsUrl({ require_tld: false })
   @IsNotEmpty()
   url: string;

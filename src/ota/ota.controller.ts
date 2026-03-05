@@ -13,17 +13,23 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiTags,
   ApiConsumes,
   ApiBody,
-  ApiOkResponse,
-  ApiCreatedResponse,
+  ApiResponse,
+  ApiParam,
+  ApiExtraModels,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { OtaService } from './ota.service';
 import { UploadOtaDto, PublishOtaDto } from './dto';
 import { Ota } from '../entity/ota.entity';
 import { BaseController } from '../base/base.controller';
 import { FormattedResponse } from '../middlewares/response';
+import { ApiResponseDto } from '../middlewares/response/api-response.dto';
 
+@ApiTags('OTA 固件')
+@ApiExtraModels(ApiResponseDto, Ota)
 @Controller('ota')
 export class OtaController extends BaseController {
   constructor(private readonly otaService: OtaService) {
@@ -31,11 +37,25 @@ export class OtaController extends BaseController {
     super();
   }
 
+  /** 上传 OTA 固件文件到存储 */
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadOtaDto })
-  @ApiCreatedResponse({ type: () => Ota })
+  @ApiResponse({
+    status: 201,
+    description: '上传成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        { properties: { data: { $ref: getSchemaPath(Ota) } } },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: '参数校验失败（如 version 为空、file 缺失）',
+  })
   async uploadOta(
     @UploadedFile(
       new ParseFilePipe({
@@ -55,7 +75,23 @@ export class OtaController extends BaseController {
     return this.responseService.success(result, '固件上传成功', 201);
   }
 
+  /** 发布 OTA，printerId 为空时广播到所有设备 */
   @Post('publish')
+  @ApiBody({ type: PublishOtaDto })
+  @ApiResponse({
+    status: 201,
+    description: '发布成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        { properties: { data: { type: 'boolean', example: true } } },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: '参数校验失败（如 version/url 为空或 url 格式无效）',
+  })
   async publishOta(
     @Body() publishOtaDto: PublishOtaDto,
   ): Promise<FormattedResponse<boolean>> {
@@ -63,16 +99,41 @@ export class OtaController extends BaseController {
     return this.responseService.success(result, '固件发布成功', 201);
   }
 
+  /** 获取所有 OTA 固件 */
   @Get()
-  @ApiOkResponse({ type: () => Ota, isArray: true })
-  // @ApiOkResponse({ type: [Ota] }) // 使用数组类型
+  @ApiResponse({
+    status: 200,
+    description: '成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        {
+          properties: {
+            data: { type: 'array', items: { $ref: getSchemaPath(Ota) } },
+          },
+        },
+      ],
+    },
+  })
   async findAll(): Promise<FormattedResponse<Ota[]>> {
     const result = await this.otaService.findAll();
     return this.responseService.success(result, '固件查询成功', 200);
   }
 
+  /** 根据 ID 获取单个固件 */
   @Get(':id')
-  @ApiOkResponse({ type: () => Ota })
+  @ApiParam({ name: 'id', description: 'OTA ID', example: '1' })
+  @ApiResponse({
+    status: 200,
+    description: '成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        { properties: { data: { $ref: getSchemaPath(Ota) } } },
+      ],
+    },
+  })
+  @ApiResponse({ status: 404, description: 'OTA 不存在' })
   async findOne(@Param('id') id: string): Promise<FormattedResponse<Ota>> {
     const result = await this.otaService.findOne(+id);
     if (!result) {
@@ -81,7 +142,20 @@ export class OtaController extends BaseController {
     return this.responseService.success(result, '固件查询成功', 200);
   }
 
+  /** 删除 OTA 记录并移除存储文件 */
   @Delete(':id')
+  @ApiParam({ name: 'id', description: 'OTA ID', example: '1' })
+  @ApiResponse({
+    status: 200,
+    description: '删除成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        { properties: { data: { type: 'boolean', example: true } } },
+      ],
+    },
+  })
+  @ApiResponse({ status: 404, description: 'OTA 不存在' })
   async delete(@Param('id') id: string): Promise<FormattedResponse<boolean>> {
     const result = await this.otaService.delete(+id);
     return this.responseService.success(result, '固件删除成功', 200);

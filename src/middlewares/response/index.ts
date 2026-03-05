@@ -1,5 +1,6 @@
 /* 统一类型定义 */
 export * from './types';
+export * from './api-response.dto';
 /* 基础工具类 */
 export * from './response.util';
 /* 业务服务 */
