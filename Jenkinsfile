@@ -27,22 +27,6 @@ pipeline {
             }
         }
 
-        stage('Setup Node.js') {
-            steps {
-                script {
-                    def nodeHome = tool 'NodeJS-22'
-                    env.PATH = "${nodeHome}/bin:${env.PATH}"
-                }
-            }
-        }
-
-        stage('Node Build') {
-            steps {
-                sh 'npm ci'
-                sh 'npm run build'
-            }
-        }
-
         stage('Docker Build') {
             steps {
                 sh "docker rmi ${IMAGE}:latest || true"
@@ -57,7 +41,7 @@ pipeline {
                         sh 'cp -f $ENV_FILE .env'
                         sh 'chmod 600 .env'
                     }
-                    sh "IMAGE=${IMAGE} APP_NAME=${APP_NAME} docker compose -f docker-compose.yml up -d --force-recreate"
+                    sh "IMAGE=${IMAGE} APP_NAME=${APP_NAME} PORT=${PORT} docker compose -f docker-compose.jenkins.yml up -d --force-recreate"
                     // 轮询直到容器可 exec 且 /app/uploads 已挂载，再设置命名卷权限
                     for (int i = 0; i < 15; i++) {
                         def rc = sh(script: "docker exec ${APP_NAME} test -d /app/uploads", returnStatus: true)

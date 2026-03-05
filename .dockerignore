@@ -1,7 +1,10 @@
 # 排除所有文件
 *
 
-# 只包含构建产物和必要文件
-!dist
+# 白名单：构建所需
 !package.json
 !package-lock.json
+!src
+!nest-cli.json
+!tsconfig.json
+!tsconfig.build.json

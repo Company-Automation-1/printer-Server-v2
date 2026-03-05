@@ -1,10 +1,10 @@
 services:
   server:
-    image: printer-server:latest
-    container_name: printer-server
+    image: ${IMAGE}:latest
+    container_name: ${APP_NAME}
     restart: unless-stopped
     ports:
-      - '8001:3000'
+      - '${PORT}:3000'
     environment:
       - TZ=Asia/Shanghai
     env_file:
