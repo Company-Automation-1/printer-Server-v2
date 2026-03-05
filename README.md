@@ -1,98 +1,121 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 打印机管理服务
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+基于 NestJS 的打印机设备管理后端，支持 MQTT 通信、固件 OTA、打印计数统计。
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 技术栈
 
-## Description
+- **框架**: NestJS 11 + Express
+- **数据库**: MySQL + TypeORM
+- **消息**: MQTT (EMQX)
+- **存储**: local / MinIO / 火山引擎 TOS（可切换）
+- **文档**: Swagger
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 快速开始
 
-## Project setup
+### 环境要求
+
+- Node.js 18+
+- MySQL 5.7+
+- MQTT Broker (EMQX)
+- MinIO 或 TOS（可选，可用 local 存储）
+
+### 安装
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+### 配置
+
+复制 `.env.example` 为 `.env` 并填写配置：
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+主要配置项：
+
+| 变量           | 说明                             |
+| -------------- | -------------------------------- |
+| `PORT`         | 服务端口，默认 3000              |
+| `API_KEY`      | API 鉴权密钥，请求头 `X-API-Key` |
+| `DB_*`         | MySQL 连接                       |
+| `MQTT_*`       | MQTT Broker 连接                 |
+| `EMQX_*`       | EMQX HTTP API（/mqtt 代理用）    |
+| `STORAGE_TYPE` | 存储类型：local / minio / tos    |
+
+### 运行
 
 ```bash
-# unit tests
-$ npm run test
+# 开发
+npm run dev
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# 生产
+npm run build && npm run start:prod
 ```
 
-## Deployment
+服务启动后：
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- API: http://localhost:3000
+- Swagger: http://localhost:3000/api-docs
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## API 概览
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+### 打印机
+
+| 方法 | 路径                      | 说明                                        |
+| ---- | ------------------------- | ------------------------------------------- |
+| POST | /printer/lock             | 锁定打印机                                  |
+| POST | /printer/unlock           | 解锁打印机                                  |
+| GET  | /printer/counters?pid=xxx | 获取打印计数（pid 格式：3E-71-BF-7F-05-2B） |
+| GET  | /printer/events           | SSE 实时推送                                |
+
+### OTA 固件
+
+| 方法   | 路径         | 说明                   |
+| ------ | ------------ | ---------------------- |
+| POST   | /ota         | 上传固件               |
+| POST   | /ota/publish | 发布 OTA（单机或广播） |
+| GET    | /ota         | 固件列表               |
+| GET    | /ota/:id     | 固件详情               |
+| DELETE | /ota/:id     | 删除固件               |
+
+### 其他
+
+- `/mqtt/*` 透传至 EMQX HTTP API
+- `/uploads/*` 静态文件
+
+## MQTT Topic
+
+| Topic                         | 方向      | 说明          |
+| ----------------------------- | --------- | ------------- |
+| printer/+/init                | 设备→服务 | 打印机初始化  |
+| printer/+/status              | 设备→服务 | 在线/离线状态 |
+| printer/+/data                | 设备→服务 | 打印计数数据  |
+| printer/+/lock                | 设备→服务 | 锁定状态上报  |
+| server/{printerId}/lock       | 服务→设备 | 锁定/解锁指令 |
+| server/{printerId}/ota/update | 服务→设备 | 单机 OTA      |
+| server/ota/broadcast/update   | 服务→设备 | 广播 OTA      |
+
+## 项目结构
+
+```
+src/
+├── config/       # 数据库、MQTT、存储配置
+├── entity/       # 实体：Printer、Ota
+├── printer/      # 打印机模块
+├── ota/          # OTA 固件模块
+├── shared/       # MqttService、SseGateway、Storage
+├── repositories/ # 数据访问
+└── middlewares/  # 响应封装、API Key、MQTT 代理
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 脚本
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| 命令                 | 说明              |
+| -------------------- | ----------------- |
+| `npm run dev`        | 开发模式（watch） |
+| `npm run build`      | 构建              |
+| `npm run start:prod` | 生产启动          |
+| `npm run lint`       | ESLint            |
+| `npm run test`       | 单元测试          |
