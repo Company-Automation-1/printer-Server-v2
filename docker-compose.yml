@@ -1,6 +1,6 @@
 services:
   server:
-    image: printer-server:latest
+    image: xlj420/printer:latest
     container_name: printer-server
     restart: unless-stopped
     ports:
