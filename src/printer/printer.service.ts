@@ -8,7 +8,7 @@ import { matchTopic } from '../lib';
 import { MqttService } from '../shared/mqtt.service';
 import { SseGatewayService } from '../shared/sse-gateway.service';
 import { PrinterRepository } from '../repositories';
-import { LockPrinterDto, UnlockPrinterDto } from './dto';
+import { LockPrinterDto, UnlockPrinterDto, OidArrayDto } from './dto';
 import { PrinterDataPayload, PrinterInitPayload } from './topic.payload.type';
 
 @Injectable()
@@ -29,6 +29,15 @@ export class PrinterService implements OnModuleInit {
   unlockPrinter(unlockPrinterDto: UnlockPrinterDto) {
     const { printerId } = unlockPrinterDto;
     this.mqttService.publish(`server/${printerId}/lock`, 'unlock');
+  }
+
+  publishOid(dto: OidArrayDto) {
+    this.mqttService.publish('printer/oid', JSON.stringify(dto.oids));
+  }
+
+  publishOidByMac(oid: string, dto: OidArrayDto) {
+    const mac = oid.replace(/-/g, ':');
+    this.mqttService.publish(`printer/oid/${mac}`, JSON.stringify(dto.oids));
   }
 
   async getPrinterCounters(pid: string) {
@@ -73,6 +82,10 @@ export class PrinterService implements OnModuleInit {
       pattern: 'printer/+/lock', // 打印机锁定
       handle: (t, m) => this.handleLock(t, m),
     },
+    {
+      pattern: 'server/oid/+', // 打印机OID
+      handle: (t, m) => this.handleOid(t, m),
+    },
   ];
 
   private handleInit(topic: string, message: Buffer) {
@@ -114,6 +127,12 @@ export class PrinterService implements OnModuleInit {
     const mac = this.TopicToMac(topic, 1);
     console.log(mac);
     console.log(message.toString());
+  }
+
+  private handleOid(topic: string, message: Buffer) {
+    const mac = this.TopicToMac(topic, 2);
+    const data = JSON.parse(message.toString()) as Record<string, string>;
+    console.log(`[${mac}] OID:`, data);
   }
 
   private broadcastToSse(topic: string, message: Buffer) {

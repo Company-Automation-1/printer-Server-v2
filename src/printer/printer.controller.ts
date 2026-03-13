@@ -5,17 +5,24 @@ import {
   Res,
   Body,
   Query,
+  Param,
   HttpCode,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrinterService } from './printer.service';
 import { SseGatewayService } from 'src/shared/sse-gateway.service';
 import { BaseController } from 'src/base/base.controller';
-import { LockPrinterDto, UnlockPrinterDto, CountersPrinterDto } from './dto';
+import {
+  LockPrinterDto,
+  UnlockPrinterDto,
+  CountersPrinterDto,
+  OidArrayDto,
+} from './dto';
 import {
   ApiTags,
   ApiBody,
   ApiResponse,
+  ApiParam,
   ApiSecurity,
   ApiExtraModels,
   getSchemaPath,
@@ -25,7 +32,7 @@ import { Printer } from '../entity/printer.entity';
 import { ApiResponseDto } from '../middlewares/response/api-response.dto';
 
 @ApiTags('打印机')
-@ApiExtraModels(ApiResponseDto, Printer)
+@ApiExtraModels(ApiResponseDto, Printer, OidArrayDto)
 @Controller('printer')
 export class PrinterController extends BaseController {
   constructor(
@@ -105,6 +112,53 @@ export class PrinterController extends BaseController {
       '打印机计数器消息获取成功',
       200,
     );
+  }
+
+  /** OID 列表，接收 OID 字符串数组（逻辑待实现） */
+  @Post('oid')
+  @RequireApiKey()
+  @HttpCode(200)
+  @ApiBody({ type: OidArrayDto })
+  @ApiResponse({
+    status: 200,
+    description: '成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        { properties: { data: { type: 'object', nullable: true } } },
+      ],
+    },
+  })
+  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
+  @ApiResponse({ status: 400, description: '参数校验失败' })
+  @ApiSecurity('api-key')
+  oidList(@Body() dto: OidArrayDto) {
+    this.printerService.publishOid(dto);
+    return this.responseService.success(null, 'OK', 200);
+  }
+
+  /** OID 详情，格式如 3E-71-BF-7F-05-2B，接收 OID 字符串数组（逻辑待实现） */
+  @Post('oid/:oid')
+  @RequireApiKey()
+  @HttpCode(200)
+  @ApiParam({ name: 'oid', description: 'OID', example: '3E-71-BF-7F-05-2B' })
+  @ApiBody({ type: OidArrayDto })
+  @ApiResponse({
+    status: 200,
+    description: '成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        { properties: { data: { type: 'object', nullable: true } } },
+      ],
+    },
+  })
+  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
+  @ApiResponse({ status: 400, description: '参数校验失败' })
+  @ApiSecurity('api-key')
+  oidDetail(@Param('oid') oid: string, @Body() dto: OidArrayDto) {
+    this.printerService.publishOidByMac(oid, dto);
+    return this.responseService.success(null, 'OK', 200);
   }
 
   /** SSE 实时推送，接收打印机 MQTT 消息 */
