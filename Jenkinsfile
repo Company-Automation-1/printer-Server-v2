@@ -12,11 +12,13 @@ pipeline {
     }
 
     environment {
-        IMAGE = 'printer-server'        // Docker 镜像名
-        APP_NAME = 'printer-server'    // 容器名称
-        PORT = '8001'                    // 服务端口
+        IMAGE = 'printer'              // 需与服务器 docker-compose 中 image 名一致
+        REGISTRY = 'docker.io'         // docker.io=从凭据读用户名；或填私有仓库如 registry.example.com
+        REGISTRY_CREDENTIAL_ID = 'docker-registry'
 
-        CONFIG_CREDENTIAL_ID = 'printer-server-env'
+        REMOTE_HOST = '47.238.243.254'        // 部署目标 IP 或 hostname
+        REMOTE_PATH = '/www/printer-server'
+        SSH_CREDENTIAL_ID = 'ssh'             // SSH 凭据 (Username with password)
     }
 
     stages {
@@ -34,33 +36,35 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Push Image') {
+            when { expression { return env.REGISTRY?.trim() } }
             steps {
                 script {
-                    withCredentials([file(credentialsId: CONFIG_CREDENTIAL_ID, variable: 'ENV_FILE')]) {
-                        sh 'cp -f $ENV_FILE .env'
-                        sh 'chmod 600 .env'
+                    def tag = env.BUILD_NUMBER ?: 'latest'
+                    withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIAL_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+                        def prefix = (REGISTRY == 'docker.io') ? "docker.io/${REG_USER}" : REGISTRY
+                        def fullImage = "${prefix}/${IMAGE}:${tag}"
+                        def loginHost = (REGISTRY == 'docker.io') ? 'docker.io' : REGISTRY
+                        sh "echo \$REG_PASS | docker login -u \$REG_USER --password-stdin ${loginHost}"
+                        sh "docker tag ${IMAGE}:latest ${fullImage}"
+                        sh "docker tag ${IMAGE}:latest ${prefix}/${IMAGE}:latest"
+                        sh "docker push ${fullImage}"
+                        sh "docker push ${prefix}/${IMAGE}:latest"
                     }
-                    sh "IMAGE=${IMAGE} APP_NAME=${APP_NAME} PORT=${PORT} docker compose -f docker-compose.jenkins.yml up -d --force-recreate"
-                    // 轮询直到容器可 exec 且 /app/uploads 已挂载，再设置命名卷权限
-                    for (int i = 0; i < 15; i++) {
-                        def rc = sh(script: "docker exec ${APP_NAME} test -d /app/uploads", returnStatus: true)
-                        if (rc == 0) break
-                        sleep(time: 1, unit: 'SECONDS')
-                    }
-                    sh "docker exec -u root ${APP_NAME} sh -c 'chmod -R 777 /app/uploads && chown -R 1001:1001 /app/uploads' || true"
                 }
             }
         }
 
-        stage('Health') {
+        stage('Deploy') {
+            when {
+                allOf {
+                    expression { env.REMOTE_HOST?.trim() }
+                    expression { env.REGISTRY?.trim() }
+                }
+            }
             steps {
-                script {
-                    def healthStatus = sh(
-                        script: "docker inspect --format='{{.State.Health.Status}}' ${APP_NAME} 2>/dev/null || echo 'starting'",
-                        returnStdout: true
-                    ).trim()
-                    echo "容器健康状态: ${healthStatus}"
+                withCredentials([usernamePassword(credentialsId: SSH_CREDENTIAL_ID, usernameVariable: 'SSH_USER', passwordVariable: 'SSH_PASS')]) {
+                    sh "export SSHPASS=\$SSH_PASS && sshpass -e ssh -o StrictHostKeyChecking=no \${SSH_USER}@${env.REMOTE_HOST} 'cd ${env.REMOTE_PATH} && ./deploy.sh'"
                 }
             }
         }
