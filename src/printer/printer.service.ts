@@ -32,12 +32,12 @@ export class PrinterService implements OnModuleInit {
   }
 
   publishOid(dto: OidArrayDto) {
-    this.mqttService.publish('printer/oid', JSON.stringify(dto.oids));
+    this.mqttService.publish('server/oid', JSON.stringify(dto.oids));
   }
 
   publishOidByMac(oid: string, dto: OidArrayDto) {
     const mac = oid.replace(/-/g, ':');
-    this.mqttService.publish(`printer/oid/${mac}`, JSON.stringify(dto.oids));
+    this.mqttService.publish(`server/oid/${mac}`, JSON.stringify(dto.oids));
   }
 
   async getPrinterCounters(pid: string) {
@@ -83,7 +83,11 @@ export class PrinterService implements OnModuleInit {
       handle: (t, m) => this.handleLock(t, m),
     },
     {
-      pattern: 'server/oid/+', // 打印机OID
+      pattern: 'printer/+/web', // Web 配置页 URL
+      handle: (t, m) => this.handleWeb(t, m),
+    },
+    {
+      pattern: 'printer/oid/+', // 按需 OID 查询结果
       handle: (t, m) => this.handleOid(t, m),
     },
   ];
@@ -127,6 +131,12 @@ export class PrinterService implements OnModuleInit {
     const mac = this.TopicToMac(topic, 1);
     console.log(mac);
     console.log(message.toString());
+  }
+
+  private handleWeb(topic: string, message: Buffer) {
+    const mac = this.TopicToMac(topic, 1);
+    const url = message.toString().trim();
+    console.log(`[${mac}] Web: ${url}`);
   }
 
   private handleOid(topic: string, message: Buffer) {

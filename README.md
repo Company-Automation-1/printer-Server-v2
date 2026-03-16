@@ -87,15 +87,18 @@ npm run build && npm run start:prod
 
 ## MQTT Topic
 
-| Topic                         | 方向      | 说明          |
-| ----------------------------- | --------- | ------------- |
-| printer/+/init                | 设备→服务 | 打印机初始化  |
-| printer/+/status              | 设备→服务 | 在线/离线状态 |
-| printer/+/data                | 设备→服务 | 打印计数数据  |
-| printer/+/lock                | 设备→服务 | 锁定状态上报  |
-| server/{printerId}/lock       | 服务→设备 | 锁定/解锁指令 |
-| server/{printerId}/ota/update | 服务→设备 | 单机 OTA      |
-| server/ota/broadcast/update   | 服务→设备 | 广播 OTA      |
+| Topic                         | 方向      | 说明                                  |
+| ----------------------------- | --------- | ------------------------------------- |
+| printer/{MAC}/status          | 设备→服务 | 在线/离线状态                         |
+| printer/{MAC}/init            | 设备→服务 | 初始化信息（版本、MAC、IP、序列号）   |
+| printer/{MAC}/data            | 设备→服务 | 打印数数据                            |
+| printer/{MAC}/lock            | 设备→服务 | 锁定状态                              |
+| printer/{MAC}/web             | 设备→服务 | Web 配置页 URL                        |
+| printer/oid/{MAC}             | 设备→服务 | 按需 OID 查询结果                     |
+| server/{MAC}/ota/update       | 服务→设备 | OTA 更新：`{"url":"http://..."}`      |
+| server/ota/broadcast/update   | 服务→设备 | 广播 OTA                              |
+| server/{MAC}/lock             | 服务→设备 | lock / unlock                         |
+| server/oid / server/oid/{MAC} | 服务→设备 | OID 查询：JSON 数组 `["oid1","oid2"]` |
 
 ## 项目结构
 
