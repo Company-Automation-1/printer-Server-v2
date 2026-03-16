@@ -8,6 +8,10 @@ CREATE TABLE `pre_printer` (
   `bw_p` int NULL DEFAULT NULL COMMENT '黑白打印',
   `c_cp` int NULL DEFAULT NULL COMMENT '彩色复印',
   `c_p` int NULL DEFAULT NULL COMMENT '彩色打印',
+  `t_bk` int NULL DEFAULT NULL COMMENT '黑色碳粉余量',
+  `t_cy` int NULL DEFAULT NULL COMMENT '青色碳粉余量',
+  `t_rd` int NULL DEFAULT NULL COMMENT '红色碳粉余量',
+  `t_yl` int NULL DEFAULT NULL COMMENT '黄色碳粉余量',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `idx_printer_id`(`printer_id` ASC) USING BTREE,
   UNIQUE INDEX `idx_serial`(`serial` ASC) USING BTREE

@@ -16,4 +16,8 @@ export interface PrinterDataPayload {
   bw_copies: number;
   col_prints: number;
   bw_prints: number;
+  toner_black?: number;
+  toner_cyan?: number;
+  toner_red?: number;
+  toner_yellow?: number;
 }

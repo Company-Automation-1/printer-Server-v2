@@ -41,4 +41,20 @@ export class Printer {
   /** 彩色打印数 */
   @Column({ type: 'int', nullable: true, comment: '彩色打印' })
   c_p: number | null;
+
+  /** 黑色碳粉余量 */
+  @Column({ type: 'int', nullable: true, comment: '黑色碳粉余量' })
+  t_bk: number | null;
+
+  /** 青色碳粉余量 */
+  @Column({ type: 'int', nullable: true, comment: '青色碳粉余量' })
+  t_cy: number | null;
+
+  /** 红色碳粉余量 */
+  @Column({ type: 'int', nullable: true, comment: '红色碳粉余量' })
+  t_rd: number | null;
+
+  /** 黄色碳粉余量 */
+  @Column({ type: 'int', nullable: true, comment: '黄色碳粉余量' })
+  t_yl: number | null;
 }

@@ -120,6 +120,10 @@ export class PrinterService implements OnModuleInit {
         bw_p: data.bw_prints,
         c_cp: data.col_copies,
         c_p: data.col_prints,
+        t_bk: data.toner_black ?? null,
+        t_cy: data.toner_cyan ?? null,
+        t_rd: data.toner_red ?? null,
+        t_yl: data.toner_yellow ?? null,
       },
       ['printerId'],
     );
