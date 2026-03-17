@@ -19,6 +19,7 @@ import { connect, MqttClient } from 'mqtt';
           clean: true,
           reconnectPeriod: 5000,
           connectTimeout: 10000,
+          keepalive: 30,
         };
 
         return connect(brokerUrl, options);

@@ -6,12 +6,14 @@ import { SharedModule } from './shared/shared.module';
 import { PrinterModule } from './printer/printer.module';
 import { OtaModule } from './ota/ota.module';
 import { DbConfigModule } from './config/db.module';
+import { RedisModule } from './config/redis.module';
 import { MiddlewaresModule } from './middlewares/middlewares.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     MiddlewaresModule,
+    RedisModule,
     SharedModule,
     PrinterModule,
     OtaModule,

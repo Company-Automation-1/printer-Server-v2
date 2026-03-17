@@ -71,7 +71,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn('MQTT 断开连接');
     });
 
-    this.client.on('error', (error) => {
+    this.client.on('error', (error: Error) => {
       this.logger.error(`MQTT 错误: ${error.message}`, error.stack);
     });
 
