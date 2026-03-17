@@ -8,11 +8,13 @@ import { OtaModule } from './ota/ota.module';
 import { DbConfigModule } from './config/db.module';
 import { RedisModule } from './config/redis.module';
 import { MiddlewaresModule } from './middlewares/middlewares.module';
+import { BaseModule } from './base/base.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     MiddlewaresModule,
+    BaseModule,
     RedisModule,
     SharedModule,
     PrinterModule,
