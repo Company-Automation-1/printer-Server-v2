@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrinterService } from './printer.service';
+import { PrinterMonthlyService } from './printer-monthly.service';
 import { SseGatewayService } from 'src/shared/sse-gateway.service';
 import { BaseController } from 'src/base/base.controller';
 import {
@@ -17,6 +18,8 @@ import {
   UnlockPrinterDto,
   CountersPrinterDto,
   OidCallbackDto,
+  MonthlyQueryDto,
+  SnapshotDto,
 } from './dto';
 import {
   ApiTags,
@@ -32,11 +35,18 @@ import { Printer } from '../entity/printer.entity';
 import { ApiResponseDto } from '../middlewares/response/api-response.dto';
 
 @ApiTags('打印机')
-@ApiExtraModels(ApiResponseDto, Printer, OidCallbackDto)
+@ApiExtraModels(
+  ApiResponseDto,
+  Printer,
+  OidCallbackDto,
+  MonthlyQueryDto,
+  SnapshotDto,
+)
 @Controller('printer')
 export class PrinterController extends BaseController {
   constructor(
     private readonly printerService: PrinterService,
+    private readonly printerMonthlyService: PrinterMonthlyService,
     private readonly sseGatewayService: SseGatewayService,
   ) {
     super();
@@ -183,6 +193,72 @@ export class PrinterController extends BaseController {
   async oidDetail(@Param('oid') oid: string, @Body() dto: OidCallbackDto) {
     const requestId = await this.printerService.publishOidByMac(oid, dto);
     return this.responseService.success({ requestId }, 'OK', 200);
+  }
+
+  /**
+   * 月度快照查询，默认返回增量。
+   * @remarks
+   * 增量计算公式：`xxx_delta = 本月值(查询月) - 上月值(查询月 -1)`（上月无记录按 0 计）
+   *
+   * 碳粉余量计算公式：`xxx_delta = 本月值(查询月) - 上月值(查询月 -1)`（负值表示消耗）
+   *
+   * - ### year+month：指定月所有设备
+   * - ### printerId：设备历史（limit 条）
+   * - ### printerId+year+month：指定设备指定月
+   * @throws {401} X-API-Key 缺失或无效
+   * @throws {400} 需传 year+month 或 printerId
+   */
+  @Get('monthly')
+  @RequireApiKey()
+  @ApiResponse({
+    status: 200,
+    description: '成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        { properties: { data: { type: 'array', items: { type: 'object' } } } },
+      ],
+    },
+  })
+  @ApiSecurity('api-key')
+  async getMonthly(@Query() query: MonthlyQueryDto) {
+    const result = await this.printerMonthlyService.findMonthly(query);
+    return this.responseService.success(result, 'OK', 200);
+  }
+
+  /** 指定设备手动触发上月快照（累计数据无法回溯，会亏损本月已过天数） */
+  @Post('monthly/snapshot')
+  @RequireApiKey()
+  @HttpCode(200)
+  @ApiBody({ type: SnapshotDto })
+  @ApiResponse({
+    status: 200,
+    description: '成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                year: { type: 'number' },
+                month: { type: 'number' },
+                printerIds: { type: 'array', items: { type: 'string' } },
+                count: { type: 'number' },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiSecurity('api-key')
+  async triggerSnapshot(@Body() dto: SnapshotDto) {
+    const result = await this.printerMonthlyService.triggerSnapshot(
+      dto.printerId,
+    );
+    return this.responseService.success(result, '快照完成', 200);
   }
 
   /** SSE 实时推送，接收打印机 MQTT 消息 */
