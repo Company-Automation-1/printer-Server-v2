@@ -16,7 +16,7 @@ import {
   LockPrinterDto,
   UnlockPrinterDto,
   CountersPrinterDto,
-  OidArrayDto,
+  OidCallbackDto,
 } from './dto';
 import {
   ApiTags,
@@ -32,7 +32,7 @@ import { Printer } from '../entity/printer.entity';
 import { ApiResponseDto } from '../middlewares/response/api-response.dto';
 
 @ApiTags('打印机')
-@ApiExtraModels(ApiResponseDto, Printer, OidArrayDto)
+@ApiExtraModels(ApiResponseDto, Printer, OidCallbackDto)
 @Controller('printer')
 export class PrinterController extends BaseController {
   constructor(
@@ -42,7 +42,11 @@ export class PrinterController extends BaseController {
     super();
   }
 
-  /** 锁定打印机，向指定打印机发送锁定指令 */
+  /**
+   * 锁定打印机，向指定打印机发送锁定指令
+   * @throws {401} X-API-Key 缺失或无效
+   * @throws {400} 参数校验失败
+   */
   @Post('lock')
   @RequireApiKey()
   @HttpCode(200)
@@ -57,15 +61,17 @@ export class PrinterController extends BaseController {
       ],
     },
   })
-  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
-  @ApiResponse({ status: 400, description: '参数校验失败' })
   @ApiSecurity('api-key')
   lockPrinter(@Body() lockPrinterDto: LockPrinterDto) {
     this.printerService.lockPrinter(lockPrinterDto);
     return this.responseService.success(null, '打印机锁定消息发送成功', 200);
   }
 
-  /** 解锁打印机，向指定打印机发送解锁指令 */
+  /**
+   * 解锁打印机，向指定打印机发送解锁指令
+   * @throws {401} X-API-Key 缺失或无效
+   * @throws {400} 参数校验失败
+   */
   @Post('unlock')
   @RequireApiKey()
   @HttpCode(200)
@@ -80,15 +86,18 @@ export class PrinterController extends BaseController {
       ],
     },
   })
-  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
-  @ApiResponse({ status: 400, description: '参数校验失败' })
   @ApiSecurity('api-key')
   unlockPrinter(@Body() unlockPrinterDto: UnlockPrinterDto) {
     this.printerService.unlockPrinter(unlockPrinterDto);
     return this.responseService.success(null, '打印机解锁消息发送成功', 200);
   }
 
-  /** 获取打印计数，pid 格式为 3E-71-BF-7F-05-2B */
+  /**
+   * 获取打印计数，pid 格式为 3E-71-BF-7F-05-2B
+   * @throws {401} X-API-Key 缺失或无效
+   * @throws {404} 打印机不存在
+   * @throws {400} 参数校验失败
+   */
   @Get('counters')
   @RequireApiKey()
   @ApiResponse({
@@ -101,9 +110,6 @@ export class PrinterController extends BaseController {
       ],
     },
   })
-  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
-  @ApiResponse({ status: 404, description: '打印机不存在' })
-  @ApiResponse({ status: 400, description: '参数校验失败' })
   @ApiSecurity('api-key')
   async countersPrinter(@Query() query: CountersPrinterDto) {
     const result = await this.printerService.getPrinterCounters(query.pid);
@@ -114,51 +120,69 @@ export class PrinterController extends BaseController {
     );
   }
 
-  /** OID 列表，接收 OID 字符串数组（逻辑待实现） */
+  /**
+   * OID 广播，向所有设备查询 OID，每台设备响应后回调一次
+   * @throws {401} X-API-Key 缺失或无效
+   * @throws {400} 参数校验失败
+   */
   @Post('oid')
   @RequireApiKey()
   @HttpCode(200)
-  @ApiBody({ type: OidArrayDto })
+  @ApiBody({ type: OidCallbackDto })
   @ApiResponse({
     status: 200,
     description: '成功',
     schema: {
       allOf: [
         { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'object', nullable: true } } },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: { requestId: { type: 'string' } },
+            },
+          },
+        },
       ],
     },
   })
-  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
-  @ApiResponse({ status: 400, description: '参数校验失败' })
   @ApiSecurity('api-key')
-  oidList(@Body() dto: OidArrayDto) {
-    this.printerService.publishOid(dto);
-    return this.responseService.success(null, 'OK', 200);
+  async oidList(@Body() dto: OidCallbackDto) {
+    const requestId = await this.printerService.publishOid(dto);
+    return this.responseService.success({ requestId }, 'OK', 200);
   }
 
-  /** OID 详情，格式如 3E-71-BF-7F-05-2B，接收 OID 字符串数组（逻辑待实现） */
+  /**
+   * OID 单设备，向指定设备查询 OID，响应后回调一次
+   * @throws {401} X-API-Key 缺失或无效
+   * @throws {400} 参数校验失败
+   */
   @Post('oid/:oid')
   @RequireApiKey()
   @HttpCode(200)
-  @ApiParam({ name: 'oid', description: 'OID', example: '3E-71-BF-7F-05-2B' })
-  @ApiBody({ type: OidArrayDto })
+  @ApiParam({ name: 'oid', description: 'MAC 格式如 3E-71-BF-7F-05-2B' })
+  @ApiBody({ type: OidCallbackDto })
   @ApiResponse({
     status: 200,
     description: '成功',
     schema: {
       allOf: [
         { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'object', nullable: true } } },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: { requestId: { type: 'string' } },
+            },
+          },
+        },
       ],
     },
   })
-  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
-  @ApiResponse({ status: 400, description: '参数校验失败' })
   @ApiSecurity('api-key')
-  oidDetail(@Param('oid') oid: string, @Body() dto: OidArrayDto) {
-    this.printerService.publishOidByMac(oid, dto);
-    return this.responseService.success(null, 'OK', 200);
+  async oidDetail(@Param('oid') oid: string, @Body() dto: OidCallbackDto) {
+    const requestId = await this.printerService.publishOidByMac(oid, dto);
+    return this.responseService.success({ requestId }, 'OK', 200);
   }
 
   /** SSE 实时推送，接收打印机 MQTT 消息 */

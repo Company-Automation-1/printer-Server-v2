@@ -68,6 +68,8 @@ npm run build && npm run start:prod
 | POST | /printer/lock             | 锁定打印机                                  |
 | POST | /printer/unlock           | 解锁打印机                                  |
 | GET  | /printer/counters?pid=xxx | 获取打印计数（pid 格式：3E-71-BF-7F-05-2B） |
+| POST | /printer/oid              | OID 广播查询（回调模式）                    |
+| POST | /printer/oid/:oid         | OID 单设备查询（回调模式）                  |
 | GET  | /printer/events           | SSE 实时推送                                |
 
 ### OTA 固件
@@ -87,18 +89,18 @@ npm run build && npm run start:prod
 
 ## MQTT Topic
 
-| Topic                         | 方向      | 说明                                  |
-| ----------------------------- | --------- | ------------------------------------- |
-| printer/{MAC}/status          | 设备→服务 | 在线/离线状态                         |
-| printer/{MAC}/init            | 设备→服务 | 初始化信息（版本、MAC、IP、序列号）   |
-| printer/{MAC}/data            | 设备→服务 | 打印数数据                            |
-| printer/{MAC}/lock            | 设备→服务 | 锁定状态                              |
-| printer/{MAC}/web             | 设备→服务 | Web 配置页 URL                        |
-| printer/oid/{MAC}             | 设备→服务 | 按需 OID 查询结果                     |
-| server/{MAC}/ota/update       | 服务→设备 | OTA 更新：`{"url":"http://..."}`      |
-| server/ota/broadcast/update   | 服务→设备 | 广播 OTA                              |
-| server/{MAC}/lock             | 服务→设备 | lock / unlock                         |
-| server/oid / server/oid/{MAC} | 服务→设备 | OID 查询：JSON 数组 `["oid1","oid2"]` |
+| Topic                         | 方向      | 说明                                                           |
+| ----------------------------- | --------- | -------------------------------------------------------------- |
+| printer/{MAC}/status          | 设备→服务 | 在线/离线状态                                                  |
+| printer/{MAC}/init            | 设备→服务 | 初始化信息（版本、MAC、IP、序列号）                            |
+| printer/{MAC}/data            | 设备→服务 | 打印数数据                                                     |
+| printer/{MAC}/lock            | 设备→服务 | 锁定状态                                                       |
+| printer/{MAC}/web             | 设备→服务 | Web 配置页 URL                                                 |
+| printer/oid/{MAC}             | 设备→服务 | OID 查询结果：`{"requestId":"uuid","results":{"oid":"value"}}` |
+| server/{MAC}/ota/update       | 服务→设备 | OTA 更新：`{"url":"http://..."}`                               |
+| server/ota/broadcast/update   | 服务→设备 | 广播 OTA                                                       |
+| server/{MAC}/lock             | 服务→设备 | lock / unlock                                                  |
+| server/oid / server/oid/{MAC} | 服务→设备 | OID 查询：`{"requestId":"uuid","oids":["oid1","oid2"]}`        |
 
 ## 项目结构
 

@@ -3,13 +3,27 @@ import {
   OnModuleInit,
   Logger,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
+import axios from 'axios';
+import { randomUUID } from 'crypto';
 import { matchTopic } from '../lib';
 import { MqttService } from '../shared/mqtt.service';
 import { SseGatewayService } from '../shared/sse-gateway.service';
 import { PrinterRepository } from '../repositories';
-import { LockPrinterDto, UnlockPrinterDto, OidArrayDto } from './dto';
+import { LockPrinterDto, UnlockPrinterDto, OidCallbackDto } from './dto';
 import { PrinterDataPayload, PrinterInitPayload } from './topic.payload.type';
+
+const OID_CALLBACK_TTL = 30_000; // 30s
+const OID_CALLBACK_PREFIX = 'oid:callback:';
+
+interface OidCallbackRecord {
+  callback: string;
+  mode: 'broadcast' | 'single';
+  calledMacs?: string[];
+}
 
 @Injectable()
 export class PrinterService implements OnModuleInit {
@@ -19,6 +33,7 @@ export class PrinterService implements OnModuleInit {
     private readonly mqttService: MqttService,
     private readonly sseGatewayService: SseGatewayService,
     private readonly printerRepository: PrinterRepository,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   lockPrinter(lockPrinterDto: LockPrinterDto) {
@@ -31,13 +46,42 @@ export class PrinterService implements OnModuleInit {
     this.mqttService.publish(`server/${printerId}/lock`, 'unlock');
   }
 
-  publishOid(dto: OidArrayDto) {
-    this.mqttService.publish('server/oid', JSON.stringify(dto.oids));
+  async publishOid(dto: OidCallbackDto): Promise<string> {
+    const requestId = dto.requestId ?? randomUUID();
+    const record: OidCallbackRecord = {
+      callback: dto.callback,
+      mode: 'broadcast',
+      calledMacs: [],
+    };
+    await this.cache.set(
+      `${OID_CALLBACK_PREFIX}${requestId}`,
+      record,
+      OID_CALLBACK_TTL,
+    );
+    this.mqttService.publish(
+      'server/oid',
+      JSON.stringify({ requestId, oids: dto.oids }),
+    );
+    return requestId;
   }
 
-  publishOidByMac(oid: string, dto: OidArrayDto) {
+  async publishOidByMac(oid: string, dto: OidCallbackDto): Promise<string> {
+    const requestId = dto.requestId ?? randomUUID();
     const mac = oid.replace(/-/g, ':');
-    this.mqttService.publish(`server/oid/${mac}`, JSON.stringify(dto.oids));
+    const record: OidCallbackRecord = {
+      callback: dto.callback,
+      mode: 'single',
+    };
+    await this.cache.set(
+      `${OID_CALLBACK_PREFIX}${requestId}`,
+      record,
+      OID_CALLBACK_TTL,
+    );
+    this.mqttService.publish(
+      `server/oid/${mac}`,
+      JSON.stringify({ requestId, oids: dto.oids }),
+    );
+    return requestId;
   }
 
   async getPrinterCounters(pid: string) {
@@ -143,10 +187,54 @@ export class PrinterService implements OnModuleInit {
     console.log(`[${mac}] Web: ${url}`);
   }
 
-  private handleOid(topic: string, message: Buffer) {
+  private async handleOid(topic: string, message: Buffer) {
     const mac = this.TopicToMac(topic, 2);
-    const data = JSON.parse(message.toString()) as Record<string, string>;
-    console.log(`[${mac}] OID:`, data);
+    const raw = JSON.parse(message.toString()) as {
+      requestId?: string;
+      results?: Record<string, string>;
+    };
+    const requestId = raw.requestId;
+    const oidResults = (raw.results ?? raw) as Record<string, string>;
+
+    if (!requestId) {
+      this.logger.debug(`[${mac}] OID 无 requestId，跳过回调`);
+      return;
+    }
+
+    const key = `${OID_CALLBACK_PREFIX}${requestId}`;
+    const record = await this.cache.get<OidCallbackRecord>(key);
+    if (!record?.callback) {
+      this.logger.debug(`[${mac}] OID requestId=${requestId} 已过期或不存在`);
+      return;
+    }
+
+    const calledMacs: string[] = Array.isArray(record.calledMacs)
+      ? record.calledMacs
+      : [];
+    if (record.mode === 'broadcast') {
+      if (calledMacs.includes(mac)) return;
+      record.calledMacs = [...calledMacs, mac];
+      await this.cache.set(key, record, OID_CALLBACK_TTL);
+    } else {
+      await this.cache.del(key);
+    }
+
+    const payload = {
+      requestId,
+      mac,
+      oidResults,
+      timestamp: Math.floor(Date.now() / 1000),
+    };
+    try {
+      await axios.post(record.callback, payload, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10_000,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `OID 回调失败 requestId=${requestId} mac=${mac}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
   }
 
   private broadcastToSse(topic: string, message: Buffer) {

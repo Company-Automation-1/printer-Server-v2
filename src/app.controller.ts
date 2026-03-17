@@ -32,7 +32,10 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  /** 受保护接口，需 X-API-Key 鉴权 */
+  /**
+   * 受保护接口，需 X-API-Key 鉴权
+   * @throws {401} X-API-Key 缺失或无效
+   */
   @Get('protected')
   @RequireApiKey()
   @ApiResponse({
@@ -52,7 +55,6 @@ export class AppController {
       ],
     },
   })
-  @ApiResponse({ status: 401, description: 'X-API-Key 缺失或无效' })
   @ApiSecurity('api-key')
   getProtected(): string {
     return 'This is a protected endpoint';
