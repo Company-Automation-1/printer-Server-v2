@@ -7,6 +7,7 @@ export class UploadOtaDto {
   @IsNotEmpty()
   version: string;
 
-  @ApiProperty({ type: 'string', format: 'binary', description: '固件文件' })
+  /** 固件文件 */
+  @ApiProperty({ type: 'string', format: 'binary' })
   file: Express.Multer.File;
 }

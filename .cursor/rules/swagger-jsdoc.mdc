@@ -1,0 +1,69 @@
+---
+description: Swagger 已开启 JSDoc，用 JSDoc 替代可替换的装饰器
+globs: '**/*.{dto,entity,controller,vo}.ts'
+alwaysApply: false
+---
+
+# Swagger JSDoc 规范
+
+项目已开启 `introspectComments`，能用 JSDoc 表达的就不写装饰器。
+
+## DTO / VO / Entity 属性
+
+用 JSDoc 替代 `@ApiProperty` 的 description、example：
+
+```typescript
+// ❌ 不用
+@ApiProperty({ description: '用户角色', example: ['admin'] })
+roles: string[] = [];
+
+// ✅ 用 JSDoc
+/**
+ * 用户角色
+ * @example ['admin']
+ */
+roles: string[] = [];
+```
+
+### Enum 类型例外
+
+NestJS Swagger 无法从 TypeScript 联合类型自动推断 enum，需用 TypeScript 原生 enum + `@ApiProperty({ enum: XxxEnum })`：
+
+```typescript
+// ❌ 联合类型无法被 Swagger 推断
+/** 任务状态 */
+status: 'pending' | 'completed' | 'failed';
+
+// ✅ TypeScript 原生 enum
+export enum TaskStatus {
+  Pending = 'pending',
+  Completed = 'completed',
+  Failed = 'failed',
+}
+
+/** 任务状态 */
+@ApiProperty({ enum: TaskStatus })
+status: TaskStatus;
+```
+
+## Controller 方法
+
+用 JSDoc 替代 `@ApiOperation`、`@ApiResponse`、`@deprecated`：
+
+```typescript
+// ❌ 不用
+@ApiOperation({ summary: '创建任务' })
+@ApiResponse({ status: 400, description: '参数错误' })
+@Post()
+create() {}
+
+// ✅ 用 JSDoc
+/**
+ * 创建任务
+ * @throws {400} 参数错误
+ */
+@Post()
+create() {}
+```
+
+支持：首行 → summary，`@remarks` → description，`@deprecated`，`@throws {code}` → ApiResponse。

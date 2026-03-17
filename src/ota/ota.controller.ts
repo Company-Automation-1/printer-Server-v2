@@ -37,7 +37,10 @@ export class OtaController extends BaseController {
     super();
   }
 
-  /** 上传 OTA 固件文件到存储 */
+  /**
+   * 上传 OTA 固件文件到存储
+   * @throws {400} 参数校验失败（如 version 为空、file 缺失）
+   */
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -51,10 +54,6 @@ export class OtaController extends BaseController {
         { properties: { data: { $ref: getSchemaPath(Ota) } } },
       ],
     },
-  })
-  @ApiResponse({
-    status: 400,
-    description: '参数校验失败（如 version 为空、file 缺失）',
   })
   async uploadOta(
     @UploadedFile(
@@ -75,7 +74,10 @@ export class OtaController extends BaseController {
     return this.responseService.success(result, '固件上传成功', 201);
   }
 
-  /** 发布 OTA，printerId 为空时广播到所有设备 */
+  /**
+   * 发布 OTA，printerId 为空时广播到所有设备
+   * @throws {400} 参数校验失败（如 version/url 为空或 url 格式无效）
+   */
   @Post('publish')
   @ApiBody({ type: PublishOtaDto })
   @ApiResponse({
@@ -87,10 +89,6 @@ export class OtaController extends BaseController {
         { properties: { data: { type: 'boolean', example: true } } },
       ],
     },
-  })
-  @ApiResponse({
-    status: 400,
-    description: '参数校验失败（如 version/url 为空或 url 格式无效）',
   })
   async publishOta(
     @Body() publishOtaDto: PublishOtaDto,
@@ -120,7 +118,10 @@ export class OtaController extends BaseController {
     return this.responseService.success(result, '固件查询成功', 200);
   }
 
-  /** 根据 ID 获取单个固件 */
+  /**
+   * 根据 ID 获取单个固件
+   * @throws {404} OTA 不存在
+   */
   @Get(':id')
   @ApiParam({ name: 'id', description: 'OTA ID', example: '1' })
   @ApiResponse({
@@ -133,7 +134,6 @@ export class OtaController extends BaseController {
       ],
     },
   })
-  @ApiResponse({ status: 404, description: 'OTA 不存在' })
   async findOne(@Param('id') id: string): Promise<FormattedResponse<Ota>> {
     const result = await this.otaService.findOne(+id);
     if (!result) {
@@ -142,7 +142,10 @@ export class OtaController extends BaseController {
     return this.responseService.success(result, '固件查询成功', 200);
   }
 
-  /** 删除 OTA 记录并移除存储文件 */
+  /**
+   * 删除 OTA 记录并移除存储文件
+   * @throws {404} OTA 不存在
+   */
   @Delete(':id')
   @ApiParam({ name: 'id', description: 'OTA ID', example: '1' })
   @ApiResponse({
@@ -155,7 +158,6 @@ export class OtaController extends BaseController {
       ],
     },
   })
-  @ApiResponse({ status: 404, description: 'OTA 不存在' })
   async delete(@Param('id') id: string): Promise<FormattedResponse<boolean>> {
     const result = await this.otaService.delete(+id);
     return this.responseService.success(result, '固件删除成功', 200);

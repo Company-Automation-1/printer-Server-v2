@@ -1,4 +1,5 @@
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum LockType {
   BILLING = 'BILLING',
@@ -12,6 +13,7 @@ export class LockPrinterDto {
   printerId: string;
 
   /** 锁定类型 */
+  @ApiProperty({ enum: LockType })
   @IsEnum(LockType)
   lockType: LockType;
 }
