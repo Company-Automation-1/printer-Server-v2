@@ -11,6 +11,17 @@ import axios from 'axios';
 import { randomUUID } from 'crypto';
 import { matchTopic } from '../lib';
 import { MqttService } from '../shared/mqtt.service';
+import {
+  SERVER_LOCK,
+  SERVER_OID,
+  SERVER_OID_MAC,
+  PRINTER_INIT,
+  PRINTER_STATUS,
+  PRINTER_DATA,
+  PRINTER_LOCK,
+  PRINTER_WEB,
+  PRINTER_OID,
+} from './mqtt-topic';
 import { SseGatewayService } from '../shared/sse-gateway.service';
 import { PrinterRepository } from '../repositories';
 import { LockPrinterDto, UnlockPrinterDto, OidCallbackDto } from './dto';
@@ -37,48 +48,43 @@ export class PrinterService implements OnModuleInit {
   ) {}
 
   lockPrinter(lockPrinterDto: LockPrinterDto) {
-    const { printerId } = lockPrinterDto;
-    this.mqttService.publish(`server/${printerId}/lock`, 'lock');
+    this.mqttService.publish(SERVER_LOCK(lockPrinterDto.printerId), 'lock');
   }
 
   unlockPrinter(unlockPrinterDto: UnlockPrinterDto) {
-    const { printerId } = unlockPrinterDto;
-    this.mqttService.publish(`server/${printerId}/lock`, 'unlock');
+    this.mqttService.publish(SERVER_LOCK(unlockPrinterDto.printerId), 'unlock');
   }
 
   async publishOid(dto: OidCallbackDto): Promise<string> {
-    const requestId = dto.requestId ?? randomUUID();
-    const record: OidCallbackRecord = {
-      callback: dto.callback,
-      mode: 'broadcast',
-      calledMacs: [],
-    };
-    await this.cache.set(
-      `${OID_CALLBACK_PREFIX}${requestId}`,
-      record,
-      OID_CALLBACK_TTL,
-    );
-    this.mqttService.publish(
-      'server/oid',
-      JSON.stringify({ requestId, oids: dto.oids }),
-    );
-    return requestId;
+    return this.publishOidInternal(dto, { mode: 'broadcast' });
   }
 
   async publishOidByMac(oid: string, dto: OidCallbackDto): Promise<string> {
+    return this.publishOidInternal(dto, {
+      mode: 'single',
+      mac: oid.replace(/-/g, ':'),
+    });
+  }
+
+  private async publishOidInternal(
+    dto: OidCallbackDto,
+    opts: { mode: 'broadcast' } | { mode: 'single'; mac: string },
+  ): Promise<string> {
     const requestId = dto.requestId ?? randomUUID();
-    const mac = oid.replace(/-/g, ':');
     const record: OidCallbackRecord = {
       callback: dto.callback,
-      mode: 'single',
+      mode: opts.mode,
+      ...(opts.mode === 'broadcast' && { calledMacs: [] }),
     };
     await this.cache.set(
       `${OID_CALLBACK_PREFIX}${requestId}`,
       record,
       OID_CALLBACK_TTL,
     );
+    const topic =
+      opts.mode === 'broadcast' ? SERVER_OID : SERVER_OID_MAC(opts.mac);
     this.mqttService.publish(
-      `server/oid/${mac}`,
+      topic,
       JSON.stringify({ requestId, oids: dto.oids }),
     );
     return requestId;
@@ -110,30 +116,12 @@ export class PrinterService implements OnModuleInit {
      */
     handle: (topic: string, message: Buffer) => void | Promise<void>;
   }> = [
-    {
-      pattern: 'printer/+/init', // 初始化打印机
-      handle: (t, m) => this.handleInit(t, m),
-    },
-    {
-      pattern: 'printer/+/status', // 打印机状态
-      handle: (t, m) => this.handleStatus(t, m),
-    },
-    {
-      pattern: 'printer/+/data', // 打印机数据
-      handle: (t, m) => this.handleData(t, m),
-    },
-    {
-      pattern: 'printer/+/lock', // 打印机锁定
-      handle: (t, m) => this.handleLock(t, m),
-    },
-    {
-      pattern: 'printer/+/web', // Web 配置页 URL
-      handle: (t, m) => this.handleWeb(t, m),
-    },
-    {
-      pattern: 'printer/oid/+', // 按需 OID 查询结果
-      handle: (t, m) => this.handleOid(t, m),
-    },
+    { pattern: PRINTER_INIT, handle: (t, m) => this.handleInit(t, m) }, // 打印机初始化
+    { pattern: PRINTER_STATUS, handle: (t, m) => this.handleStatus(t, m) }, // 打印机状态
+    { pattern: PRINTER_DATA, handle: (t, m) => this.handleData(t, m) }, // 打印机数据
+    { pattern: PRINTER_LOCK, handle: (t, m) => this.handleLock(t, m) }, // 打印机锁定
+    { pattern: PRINTER_WEB, handle: (t, m) => this.handleWeb(t, m) }, // Web 配置页 URL
+    { pattern: PRINTER_OID, handle: (t, m) => this.handleOid(t, m) }, // 按需 OID 查询结果
   ];
 
   private handleInit(topic: string, message: Buffer) {
