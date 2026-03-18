@@ -90,6 +90,10 @@ export class PrinterService implements OnModuleInit {
     return requestId;
   }
 
+  async getAllPrinters() {
+    return this.printerRepository.find({ order: { printerId: 'ASC' } });
+  }
+
   async getPrinterCounters(pid: string) {
     const printerId = pid.replace(/-/g, ':');
     const printer = await this.printerRepository.findByPrinterId(printerId);

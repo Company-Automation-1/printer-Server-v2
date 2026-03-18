@@ -65,6 +65,7 @@ npm run build && npm run start:prod
 
 | 方法 | 路径                      | 说明                                        |
 | ---- | ------------------------- | ------------------------------------------- |
+| GET  | /printer                  | 获取全部打印机列表                          |
 | POST | /printer/lock             | 锁定打印机                                  |
 | POST | /printer/unlock           | 解锁打印机                                  |
 | GET  | /printer/counters?pid=xxx | 获取打印计数（pid 格式：3E-71-BF-7F-05-2B） |

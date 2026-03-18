@@ -53,6 +53,35 @@ export class PrinterController extends BaseController {
   }
 
   /**
+   * 获取全部打印机列表
+   * @throws {401} X-API-Key 缺失或无效
+   */
+  @Get()
+  @RequireApiKey()
+  @ApiResponse({
+    status: 200,
+    description: '成功',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ApiResponseDto) },
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: getSchemaPath(Printer) },
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiSecurity('api-key')
+  async listPrinters() {
+    const result = await this.printerService.getAllPrinters();
+    return this.responseService.success(result, 'OK', 200);
+  }
+
+  /**
    * 锁定打印机，向指定打印机发送锁定指令
    * @throws {401} X-API-Key 缺失或无效
    * @throws {400} 参数校验失败
