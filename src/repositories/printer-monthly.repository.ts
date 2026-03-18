@@ -49,4 +49,10 @@ export class PrinterMonthlyRepository extends BaseRepository<PrinterMonthly> {
   countByYearMonth(year: number, month: number): Promise<number> {
     return this.count({ where: { year, month } });
   }
+
+  findAll(): Promise<PrinterMonthly[]> {
+    return this.find({
+      order: { year: 'DESC', month: 'DESC', printerId: 'ASC' },
+    });
+  }
 }

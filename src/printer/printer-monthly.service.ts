@@ -39,7 +39,16 @@ export class PrinterMonthlyService {
     if (year != null && month != null) {
       return this.findByYearMonth(year, month, printerId, snapshot);
     }
-    throw new BadRequestException('需传 year+month 或 printerId');
+    if (year == null && month == null) {
+      return this.findAll(snapshot);
+    }
+    throw new BadRequestException('需传 year+month 或 printerId 或 不传参数');
+  }
+
+  private async findAll(snapshot: boolean) {
+    const rows = await this.printerMonthlyRepository.findAll();
+    if (snapshot) return rows;
+    return this.toDeltaBatch(rows);
   }
 
   private async findByYearMonth(

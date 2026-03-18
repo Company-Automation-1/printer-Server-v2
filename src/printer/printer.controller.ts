@@ -33,11 +33,14 @@ import {
 import { RequireApiKey } from 'src/middlewares/api-key';
 import { Printer } from '../entity/printer.entity';
 import { ApiResponseDto } from '../middlewares/response/api-response.dto';
+import { PrinterMonthly } from 'src/entity/printer-monthly.entity';
 
 @ApiTags('打印机')
+/** 添加模型到 Swagger 文档中, 否则 getSchemaPath 无法显示 */
 @ApiExtraModels(
   ApiResponseDto,
   Printer,
+  PrinterMonthly,
   OidCallbackDto,
   MonthlyQueryDto,
   SnapshotDto,
@@ -231,11 +234,12 @@ export class PrinterController extends BaseController {
    *
    * 碳粉余量计算公式：`xxx_delta = 本月值(查询月) - 上月值(查询月 -1)`（负值表示消耗）
    *
+   * - ### 无参数：返回全部
    * - ### year+month：指定月所有设备
    * - ### printerId：设备历史（limit 条）
    * - ### printerId+year+month：指定设备指定月
    * @throws {401} X-API-Key 缺失或无效
-   * @throws {400} 需传 year+month 或 printerId
+   * @throws {400} 仅传 year 或仅传 month 时
    */
   @Get('monthly')
   @RequireApiKey()
@@ -245,7 +249,14 @@ export class PrinterController extends BaseController {
     schema: {
       allOf: [
         { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'array', items: { type: 'object' } } } },
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: getSchemaPath(PrinterMonthly) },
+            },
+          },
+        },
       ],
     },
   })
