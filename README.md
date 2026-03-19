@@ -1,14 +1,15 @@
 # 打印机管理服务
 
-基于 NestJS 的打印机设备管理后端，支持 MQTT 通信、固件 OTA、打印计数统计。
+基于 NestJS 的打印机设备管理后端，支持 MQTT 通信、固件 OTA、打印计数统计、打印机注册与扫码重定向。
 
 ## 技术栈
 
 - **框架**: NestJS 11 + Express
 - **数据库**: MySQL + TypeORM
+- **缓存**: Redis (Keyv)
 - **消息**: MQTT (EMQX)
 - **存储**: local / MinIO / 火山引擎 TOS（可切换）
-- **文档**: Swagger
+- **文档**: Swagger (introspectComments + apiResponseSchema)
 
 ## 快速开始
 
@@ -16,6 +17,7 @@
 
 - Node.js 18+
 - MySQL 5.7+
+- Redis
 - MQTT Broker (EMQX)
 - MinIO 或 TOS（可选，可用 local 存储）
 
@@ -35,14 +37,17 @@ cp .env.example .env
 
 主要配置项：
 
-| 变量           | 说明                             |
-| -------------- | -------------------------------- |
-| `PORT`         | 服务端口，默认 3000              |
-| `API_KEY`      | API 鉴权密钥，请求头 `X-API-Key` |
-| `DB_*`         | MySQL 连接                       |
-| `MQTT_*`       | MQTT Broker 连接                 |
-| `EMQX_*`       | EMQX HTTP API（/mqtt 代理用）    |
-| `STORAGE_TYPE` | 存储类型：local / minio / tos    |
+| 变量            | 说明                             |
+| --------------- | -------------------------------- |
+| `PORT`          | 服务端口，默认 3000              |
+| `HTTP_PROTOCOL` | 协议，默认 http                  |
+| `DOMAIN`        | 域名，默认 localhost             |
+| `API_KEY`       | API 鉴权密钥，请求头 `X-API-Key` |
+| `DB_*`          | MySQL 连接                       |
+| `REDIS_*`       | Redis 连接                       |
+| `MQTT_*`        | MQTT Broker 连接                 |
+| `EMQX_*`        | EMQX HTTP API（/mqtt 代理用）    |
+| `STORAGE_TYPE`  | 存储类型：local / minio / tos    |
 
 ### 运行
 
@@ -65,12 +70,14 @@ npm run build && npm run start:prod
 
 | 方法 | 路径                      | 说明                                        |
 | ---- | ------------------------- | ------------------------------------------- |
-| GET  | /printer                  | 获取全部打印机列表                          |
+| GET  | /printer                  | 获取全部打印机列表（需 X-API-Key）          |
 | POST | /printer/lock             | 锁定打印机                                  |
 | POST | /printer/unlock           | 解锁打印机                                  |
 | GET  | /printer/counters?pid=xxx | 获取打印计数（pid 格式：3E-71-BF-7F-05-2B） |
 | POST | /printer/oid              | OID 广播查询（回调模式）                    |
 | POST | /printer/oid/:oid         | OID 单设备查询（回调模式）                  |
+| GET  | /printer/monthly          | 月度快照/增量查询（year、month、printerId） |
+| POST | /printer/monthly/snapshot | 指定设备手动触发上月快照                    |
 | GET  | /printer/events           | SSE 实时推送                                |
 
 ### OTA 固件
@@ -83,8 +90,21 @@ npm run build && npm run start:prod
 | GET    | /ota/:id     | 固件详情               |
 | DELETE | /ota/:id     | 删除固件               |
 
+### 打印机注册
+
+| 方法   | 路径                           | 说明                            |
+| ------ | ------------------------------ | ------------------------------- |
+| GET    | /printer-register              | 获取全部注册记录                |
+| GET    | /printer-register/302/:uuid    | 扫码重定向到打印机局域网地址    |
+| GET    | /printer-register/unregistered | 获取未注册记录                  |
+| GET    | /printer-register/:id          | 根据 ID 获取单条记录            |
+| PATCH  | /printer-register/:id          | 更新注册记录（填写 identifier） |
+| DELETE | /printer-register/:id          | 删除记录并移除二维码存储        |
+
 ### 其他
 
+- `GET /` 健康检查
+- `GET /protected` 受保护接口（需 X-API-Key）
 - `/mqtt/*` 透传至 EMQX HTTP API
 - `/uploads/*` 静态文件
 
@@ -96,9 +116,9 @@ npm run build && npm run start:prod
 | printer/{MAC}/init            | 设备→服务 | 初始化信息（版本、MAC、IP、序列号）                            |
 | printer/{MAC}/data            | 设备→服务 | 打印数数据                                                     |
 | printer/{MAC}/lock            | 设备→服务 | 锁定状态                                                       |
-| printer/{MAC}/register       | 设备→服务 | 注册页 IP：`{"ip":"192.168.x.x"}`                              |
+| printer/{MAC}/register        | 设备→服务 | 注册页 IP：`{"ip":"192.168.x.x"}`                              |
 | printer/oid/{MAC}             | 设备→服务 | OID 查询结果：`{"requestId":"uuid","results":{"oid":"value"}}` |
-| server/{MAC}/ota/update       | 服务→设备 | OTA 更新：`{"url":"http://..."}`                               |
+| server/{MAC}/ota/update       | 服务→设备 | OTA 更新：`{"version":"x","url":"http://..."}`                 |
 | server/ota/broadcast/update   | 服务→设备 | 广播 OTA                                                       |
 | server/{MAC}/lock             | 服务→设备 | lock / unlock                                                  |
 | server/oid / server/oid/{MAC} | 服务→设备 | OID 查询：`{"requestId":"uuid","oids":["oid1","oid2"]}`        |
@@ -107,13 +127,16 @@ npm run build && npm run start:prod
 
 ```
 src/
-├── config/       # 数据库、MQTT、存储配置
-├── entity/       # 实体：Printer、Ota
-├── printer/      # 打印机模块
-├── ota/          # OTA 固件模块
-├── shared/       # MqttService、SseGateway、Storage
-├── repositories/ # 数据访问
-└── middlewares/  # 响应封装、API Key、MQTT 代理
+├── config/          # 数据库、MQTT、Redis、存储、应用配置
+├── entity/          # 实体：Printer、Ota、PrinterMonthly、PrinterRegister
+├── lib/             # 工具：mqtt-match、swagger、snowflake
+├── printer/         # 打印机模块（含 monthly 快照）
+├── printer_register/# 打印机注册模块（二维码、扫码重定向）
+├── ota/             # OTA 固件模块
+├── shared/          # MqttService、SseGateway、Storage
+├── repositories/    # 数据访问
+├── middlewares/     # 响应封装、API Key、MQTT 代理
+└── base/            # BaseController、BaseService
 ```
 
 ## 脚本
