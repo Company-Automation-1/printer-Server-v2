@@ -4,9 +4,10 @@ import { PrinterController } from './printer.controller';
 import { PrinterSnapshotService } from './printer-snapshot.service';
 import { PrinterMonthlyService } from './printer-monthly.service';
 import { RepositoriesModule } from '../repositories/repositories.module';
+import { PrinterRegisterModule } from '../printer_register/printer_register.module';
 
 @Module({
-  imports: [RepositoriesModule],
+  imports: [RepositoriesModule, PrinterRegisterModule],
   controllers: [PrinterController],
   providers: [PrinterService, PrinterSnapshotService, PrinterMonthlyService],
 })

@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { MqttService } from '../shared/mqtt.service';
 import { SseGatewayService } from '../shared/sse-gateway.service';
 import { PrinterRepository } from '../repositories';
+import { PrinterRegisterService } from '../printer_register/printer_register.service';
 import { PrinterService } from './printer.service';
 
 describe('PrinterService', () => {
@@ -24,6 +25,7 @@ describe('PrinterService', () => {
         },
         { provide: SseGatewayService, useValue: {} },
         { provide: PrinterRepository, useValue: {} },
+        { provide: PrinterRegisterService, useValue: {} },
         {
           provide: CACHE_MANAGER,
           useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() },

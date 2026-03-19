@@ -8,5 +8,5 @@ export const PRINTER_INIT = 'printer/+/init'; // 打印机初始化
 export const PRINTER_STATUS = 'printer/+/status'; // 打印机状态
 export const PRINTER_DATA = 'printer/+/data'; // 打印机数据
 export const PRINTER_LOCK = 'printer/+/lock'; // 打印机锁定
-export const PRINTER_WEB = 'printer/+/web'; // Web 配置页 URL
+export const PRINTER_REGISTER = 'printer/+/register'; // 注册页 URL
 export const PRINTER_OID = 'printer/oid/+'; // 按需 OID 查询结果

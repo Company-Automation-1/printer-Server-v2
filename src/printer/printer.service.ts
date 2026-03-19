@@ -19,13 +19,18 @@ import {
   PRINTER_STATUS,
   PRINTER_DATA,
   PRINTER_LOCK,
-  PRINTER_WEB,
+  PRINTER_REGISTER,
   PRINTER_OID,
 } from './mqtt-topic';
 import { SseGatewayService } from '../shared/sse-gateway.service';
 import { PrinterRepository } from '../repositories';
+import { PrinterRegisterService } from '../printer_register/printer_register.service';
 import { LockPrinterDto, UnlockPrinterDto, OidCallbackDto } from './dto';
-import { PrinterDataPayload, PrinterInitPayload } from './topic.payload.type';
+import {
+  PrinterDataPayload,
+  PrinterInitPayload,
+  PrinterRegisterPayload,
+} from './topic.payload.type';
 
 const OID_CALLBACK_TTL = 30_000; // 30s
 const OID_CALLBACK_PREFIX = 'oid:callback:';
@@ -44,6 +49,7 @@ export class PrinterService implements OnModuleInit {
     private readonly mqttService: MqttService,
     private readonly sseGatewayService: SseGatewayService,
     private readonly printerRepository: PrinterRepository,
+    private readonly printerRegisterService: PrinterRegisterService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
@@ -124,7 +130,7 @@ export class PrinterService implements OnModuleInit {
     { pattern: PRINTER_STATUS, handle: (t, m) => this.handleStatus(t, m) }, // 打印机状态
     { pattern: PRINTER_DATA, handle: (t, m) => this.handleData(t, m) }, // 打印机数据
     { pattern: PRINTER_LOCK, handle: (t, m) => this.handleLock(t, m) }, // 打印机锁定
-    { pattern: PRINTER_WEB, handle: (t, m) => this.handleWeb(t, m) }, // Web 配置页 URL
+    { pattern: PRINTER_REGISTER, handle: (t, m) => this.handleRegister(t, m) }, // 注册页 URL
     { pattern: PRINTER_OID, handle: (t, m) => this.handleOid(t, m) }, // 按需 OID 查询结果
   ];
 
@@ -173,10 +179,14 @@ export class PrinterService implements OnModuleInit {
     console.log(message.toString());
   }
 
-  private handleWeb(topic: string, message: Buffer) {
+  private handleRegister(topic: string, message: Buffer) {
     const mac = this.TopicToMac(topic, 1);
-    const url = message.toString().trim();
-    console.log(`[${mac}] Web: ${url}`);
+    const data = JSON.parse(message.toString()) as PrinterRegisterPayload;
+    this.printerRegisterService.upsertByPrinterId(mac, data.ip).catch((err) => {
+      this.logger.warn(
+        `[${mac}] 注册失败: ${err instanceof Error ? err.message : err}`,
+      );
+    });
   }
 
   private async handleOid(topic: string, message: Buffer) {

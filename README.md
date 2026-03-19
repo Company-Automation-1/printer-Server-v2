@@ -96,7 +96,7 @@ npm run build && npm run start:prod
 | printer/{MAC}/init            | 设备→服务 | 初始化信息（版本、MAC、IP、序列号）                            |
 | printer/{MAC}/data            | 设备→服务 | 打印数数据                                                     |
 | printer/{MAC}/lock            | 设备→服务 | 锁定状态                                                       |
-| printer/{MAC}/web             | 设备→服务 | Web 配置页 URL                                                 |
+| printer/{MAC}/register       | 设备→服务 | 注册页 IP：`{"ip":"192.168.x.x"}`                              |
 | printer/oid/{MAC}             | 设备→服务 | OID 查询结果：`{"requestId":"uuid","results":{"oid":"value"}}` |
 | server/{MAC}/ota/update       | 服务→设备 | OTA 更新：`{"url":"http://..."}`                               |
 | server/ota/broadcast/update   | 服务→设备 | 广播 OTA                                                       |

@@ -21,3 +21,7 @@ export interface PrinterDataPayload {
   toner_red?: number;
   toner_yellow?: number;
 }
+
+export interface PrinterRegisterPayload {
+  ip: string;
+}

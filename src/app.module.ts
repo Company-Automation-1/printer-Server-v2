@@ -11,6 +11,7 @@ import { DbConfigModule } from './config/db.module';
 import { RedisModule } from './config/redis.module';
 import { MiddlewaresModule } from './middlewares/middlewares.module';
 import { BaseModule } from './base/base.module';
+import { PrinterRegisterModule } from './printer_register/printer_register.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { BaseModule } from './base/base.module';
     PrinterModule,
     OtaModule,
     DbConfigModule,
+    PrinterRegisterModule,
   ],
   controllers: [AppController],
   providers: [AppService],
