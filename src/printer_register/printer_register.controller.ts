@@ -6,7 +6,9 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { PrinterRegisterService } from './printer_register.service';
 import { RegisterPrinterRegisterDto } from './dto/register-printer_register.dto';
 import { BaseController } from 'src/base/base.controller';
@@ -20,6 +22,12 @@ export class PrinterRegisterController extends BaseController {
   @Get()
   findAll() {
     return this.printerRegisterService.findAll();
+  }
+
+  @Get('302/:uuid')
+  async redirect(@Param('uuid') uuid: string, @Res() res: Response) {
+    const lanIp = await this.printerRegisterService.findByUuid(uuid);
+    return res.redirect(302, `http://${lanIp}`);
   }
 
   @Get('unregistered')

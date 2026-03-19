@@ -95,4 +95,10 @@ export class PrinterRegisterService {
   findUnregistered(): Promise<PrinterRegister[]> {
     return this.repo.find({ where: { identifier: IsNull() } });
   }
+
+  async findByUuid(uuid: string): Promise<string | null> {
+    const record = await this.repo.findByUuid(uuid);
+    if (!record || !record.lanIp) throw new NotFoundException('二维码已失效');
+    return record.lanIp;
+  }
 }
