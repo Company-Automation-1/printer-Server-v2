@@ -28,8 +28,8 @@ import {
   ApiParam,
   ApiSecurity,
   ApiExtraModels,
-  getSchemaPath,
 } from '@nestjs/swagger';
+import { apiResponseSchema, arrayRef, dataSchema } from 'src/lib/swagger';
 import { RequireApiKey } from 'src/middlewares/api-key';
 import { Printer } from '../entity/printer.entity';
 import { ApiResponseDto } from '../middlewares/response/api-response.dto';
@@ -61,23 +61,7 @@ export class PrinterController extends BaseController {
    */
   @Get()
   @RequireApiKey()
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(Printer) },
-            },
-          },
-        },
-      ],
-    },
-  })
+  @ApiResponse(apiResponseSchema(arrayRef(Printer)))
   @ApiSecurity('api-key')
   async listPrinters() {
     const result = await this.printerService.getAllPrinters();
@@ -93,16 +77,11 @@ export class PrinterController extends BaseController {
   @RequireApiKey()
   @HttpCode(200)
   @ApiBody({ type: LockPrinterDto })
-  @ApiResponse({
-    status: 200,
-    description: '锁定消息发送成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'object', nullable: true } } },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema(dataSchema.nullable, {
+      description: '锁定消息发送成功',
+    }),
+  )
   @ApiSecurity('api-key')
   lockPrinter(@Body() lockPrinterDto: LockPrinterDto) {
     this.printerService.lockPrinter(lockPrinterDto);
@@ -118,16 +97,11 @@ export class PrinterController extends BaseController {
   @RequireApiKey()
   @HttpCode(200)
   @ApiBody({ type: UnlockPrinterDto })
-  @ApiResponse({
-    status: 200,
-    description: '解锁消息发送成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'object', nullable: true } } },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema(dataSchema.nullable, {
+      description: '解锁消息发送成功',
+    }),
+  )
   @ApiSecurity('api-key')
   unlockPrinter(@Body() unlockPrinterDto: UnlockPrinterDto) {
     this.printerService.unlockPrinter(unlockPrinterDto);
@@ -142,16 +116,7 @@ export class PrinterController extends BaseController {
    */
   @Get('counters')
   @RequireApiKey()
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { $ref: getSchemaPath(Printer) } } },
-      ],
-    },
-  })
+  @ApiResponse(apiResponseSchema(Printer))
   @ApiSecurity('api-key')
   async countersPrinter(@Query() query: CountersPrinterDto) {
     const result = await this.printerService.getPrinterCounters(query.pid);
@@ -171,23 +136,12 @@ export class PrinterController extends BaseController {
   @RequireApiKey()
   @HttpCode(200)
   @ApiBody({ type: OidCallbackDto })
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        {
-          properties: {
-            data: {
-              type: 'object',
-              properties: { requestId: { type: 'string' } },
-            },
-          },
-        },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema({
+      type: 'object',
+      properties: { requestId: { type: 'string' } },
+    }),
+  )
   @ApiSecurity('api-key')
   async oidList(@Body() dto: OidCallbackDto) {
     const requestId = await this.printerService.publishOid(dto);
@@ -204,23 +158,12 @@ export class PrinterController extends BaseController {
   @HttpCode(200)
   @ApiParam({ name: 'oid', description: 'MAC 格式如 3E-71-BF-7F-05-2B' })
   @ApiBody({ type: OidCallbackDto })
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        {
-          properties: {
-            data: {
-              type: 'object',
-              properties: { requestId: { type: 'string' } },
-            },
-          },
-        },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema({
+      type: 'object',
+      properties: { requestId: { type: 'string' } },
+    }),
+  )
   @ApiSecurity('api-key')
   async oidDetail(@Param('oid') oid: string, @Body() dto: OidCallbackDto) {
     const requestId = await this.printerService.publishOidByMac(oid, dto);
@@ -243,23 +186,7 @@ export class PrinterController extends BaseController {
    */
   @Get('monthly')
   @RequireApiKey()
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        {
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(PrinterMonthly) },
-            },
-          },
-        },
-      ],
-    },
-  })
+  @ApiResponse(apiResponseSchema(arrayRef(PrinterMonthly)))
   @ApiSecurity('api-key')
   async getMonthly(@Query() query: MonthlyQueryDto) {
     const result = await this.printerMonthlyService.findMonthly(query);
@@ -271,28 +198,17 @@ export class PrinterController extends BaseController {
   @RequireApiKey()
   @HttpCode(200)
   @ApiBody({ type: SnapshotDto })
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        {
-          properties: {
-            data: {
-              type: 'object',
-              properties: {
-                year: { type: 'number' },
-                month: { type: 'number' },
-                printerIds: { type: 'array', items: { type: 'string' } },
-                count: { type: 'number' },
-              },
-            },
-          },
-        },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema({
+      type: 'object',
+      properties: {
+        year: { type: 'number' },
+        month: { type: 'number' },
+        printerIds: { type: 'array', items: { type: 'string' } },
+        count: { type: 'number' },
+      },
+    }),
+  )
   @ApiSecurity('api-key')
   async triggerSnapshot(@Body() dto: SnapshotDto) {
     const result = await this.printerMonthlyService.triggerSnapshot(

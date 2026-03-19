@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 
 /** 打印机注册表：MAC、序列号及注册二维码 */
@@ -14,6 +15,7 @@ export class PrinterRegister {
   uuid: string;
 
   /** 标识 (可读唯一标识) */
+  @ApiProperty({ nullable: true })
   @Column({
     type: 'varchar',
     length: 50,
@@ -41,6 +43,7 @@ export class PrinterRegister {
   qrUrl: string;
 
   /** 打印机id(硬件 MAC 地址) */
+  @ApiProperty({ nullable: true })
   @Column({
     name: 'printer_id',
     type: 'varchar',
@@ -51,6 +54,7 @@ export class PrinterRegister {
   printerId: string | null;
 
   /** 局域网IP */
+  @ApiProperty({ nullable: true })
   @Column({
     name: 'lan_ip',
     type: 'varchar',
@@ -61,6 +65,7 @@ export class PrinterRegister {
   lanIp: string | null;
 
   /** 打印机序列号 */
+  @ApiProperty({ nullable: true })
   @Column({
     type: 'varchar',
     length: 50,
@@ -70,6 +75,7 @@ export class PrinterRegister {
   serial: string | null;
 
   /** 创建时间，秒级时间戳 */
+  @ApiProperty({ nullable: true })
   @Column({
     name: 'created_at',
     type: 'bigint',
@@ -80,6 +86,7 @@ export class PrinterRegister {
   createdAt: number | null;
 
   /** 更新时间，秒级时间戳 */
+  @ApiProperty({ nullable: true })
   @Column({
     name: 'updated_at',
     type: 'bigint',

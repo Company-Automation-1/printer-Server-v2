@@ -19,7 +19,6 @@ import {
   ApiResponse,
   ApiParam,
   ApiExtraModels,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { OtaService } from './ota.service';
 import { UploadOtaDto, PublishOtaDto } from './dto';
@@ -27,6 +26,7 @@ import { Ota } from '../entity/ota.entity';
 import { BaseController } from '../base/base.controller';
 import { FormattedResponse } from '../middlewares/response';
 import { ApiResponseDto } from '../middlewares/response/api-response.dto';
+import { apiResponseSchema, arrayRef, dataSchema } from 'src/lib/swagger';
 
 @ApiTags('OTA 固件')
 @ApiExtraModels(ApiResponseDto, Ota)
@@ -45,16 +45,7 @@ export class OtaController extends BaseController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UploadOtaDto })
-  @ApiResponse({
-    status: 201,
-    description: '上传成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { $ref: getSchemaPath(Ota) } } },
-      ],
-    },
-  })
+  @ApiResponse(apiResponseSchema(Ota, { status: 201, description: '上传成功' }))
   async uploadOta(
     @UploadedFile(
       new ParseFilePipe({
@@ -80,16 +71,12 @@ export class OtaController extends BaseController {
    */
   @Post('publish')
   @ApiBody({ type: PublishOtaDto })
-  @ApiResponse({
-    status: 201,
-    description: '发布成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'boolean', example: true } } },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema(dataSchema.boolean(true), {
+      status: 201,
+      description: '发布成功',
+    }),
+  )
   async publishOta(
     @Body() publishOtaDto: PublishOtaDto,
   ): Promise<FormattedResponse<boolean>> {
@@ -99,20 +86,7 @@ export class OtaController extends BaseController {
 
   /** 获取所有 OTA 固件 */
   @Get()
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        {
-          properties: {
-            data: { type: 'array', items: { $ref: getSchemaPath(Ota) } },
-          },
-        },
-      ],
-    },
-  })
+  @ApiResponse(apiResponseSchema(arrayRef(Ota)))
   async findAll(): Promise<FormattedResponse<Ota[]>> {
     const result = await this.otaService.findAll();
     return this.responseService.success(result, '固件查询成功', 200);
@@ -124,16 +98,7 @@ export class OtaController extends BaseController {
    */
   @Get(':id')
   @ApiParam({ name: 'id', description: 'OTA ID', example: '1' })
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { $ref: getSchemaPath(Ota) } } },
-      ],
-    },
-  })
+  @ApiResponse(apiResponseSchema(Ota))
   async findOne(@Param('id') id: string): Promise<FormattedResponse<Ota>> {
     const result = await this.otaService.findOne(+id);
     if (!result) {
@@ -148,16 +113,9 @@ export class OtaController extends BaseController {
    */
   @Delete(':id')
   @ApiParam({ name: 'id', description: 'OTA ID', example: '1' })
-  @ApiResponse({
-    status: 200,
-    description: '删除成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'boolean', example: true } } },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema(dataSchema.boolean(true), { description: '删除成功' }),
+  )
   async delete(@Param('id') id: string): Promise<FormattedResponse<boolean>> {
     const result = await this.otaService.delete(+id);
     return this.responseService.success(result, '固件删除成功', 200);

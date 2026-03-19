@@ -4,8 +4,8 @@ import {
   ApiResponse,
   ApiSecurity,
   ApiExtraModels,
-  getSchemaPath,
 } from '@nestjs/swagger';
+import { apiResponseSchema, dataSchema } from 'src/lib/swagger';
 import { AppService } from './app.service';
 import { RequireApiKey } from './middlewares/api-key';
 import { ApiResponseDto } from './middlewares/response/api-response.dto';
@@ -18,16 +18,11 @@ export class AppController {
 
   /** 健康检查，服务存活检测 */
   @Get()
-  @ApiResponse({
-    status: 200,
-    description: '服务正常',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        { properties: { data: { type: 'string', example: 'Hello World!' } } },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema(dataSchema.string('Hello World!'), {
+      description: '服务正常',
+    }),
+  )
   getHello(): string {
     return this.appService.getHello();
   }
@@ -38,23 +33,9 @@ export class AppController {
    */
   @Get('protected')
   @RequireApiKey()
-  @ApiResponse({
-    status: 200,
-    description: '成功',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(ApiResponseDto) },
-        {
-          properties: {
-            data: {
-              type: 'string',
-              example: 'This is a protected endpoint',
-            },
-          },
-        },
-      ],
-    },
-  })
+  @ApiResponse(
+    apiResponseSchema(dataSchema.string('This is a protected endpoint')),
+  )
   @ApiSecurity('api-key')
   getProtected(): string {
     return 'This is a protected endpoint';
