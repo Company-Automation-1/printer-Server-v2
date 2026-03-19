@@ -1,5 +1,5 @@
 -- 打印机表：MAC、序列号及打印/复印计数
-CREATE TABLE `pre_printer` (
+CREATE TABLE `pre_printer`  (
   `id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
   `printer_id` char(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '打印机id(硬件 MAC 地址)',
   `serial` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '打印机序列号',

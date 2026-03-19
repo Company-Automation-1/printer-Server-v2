@@ -1,5 +1,5 @@
 -- 打印机月度快照表：按月截取累计数据，用于月增量统计
-CREATE TABLE `pre_printer_monthly` (
+CREATE TABLE `pre_printer_monthly`  (
   `id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
   `printer_id` char(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '打印机 MAC',
   `serial` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '序列号',
@@ -14,7 +14,7 @@ CREATE TABLE `pre_printer_monthly` (
   `t_cy` int NULL DEFAULT NULL COMMENT '青色碳粉余量',
   `t_rd` int NULL DEFAULT NULL COMMENT '红色碳粉余量',
   `t_yl` int NULL DEFAULT NULL COMMENT '黄色碳粉余量',
-  `created_at` bigint NULL COMMENT '秒级时间戳',
+  `created_at` bigint NULL DEFAULT NULL COMMENT '秒级时间戳',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_printer_year_month`(`printer_id` ASC, `year` ASC, `month` ASC) USING BTREE,
   INDEX `idx_year_month`(`year` ASC, `month` ASC) USING BTREE
