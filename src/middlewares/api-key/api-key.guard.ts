@@ -3,20 +3,21 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ConfigService } from '@nestjs/config';
 import { API_KEY_REQUIRED } from './api-key.decorator';
+import { APP_CONFIG, type AppConfig } from 'src/config/app.module';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    private configService: ConfigService,
+    @Inject(APP_CONFIG) private appConfig: AppConfig,
   ) {}
 
   private verify(apiKey: string): boolean {
-    return apiKey === this.configService.get<string>('API_KEY');
+    return apiKey === this.appConfig.apiKey;
   }
 
   canActivate(context: ExecutionContext): boolean {

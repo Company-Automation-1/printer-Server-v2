@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { AppConfigModule } from './config/app.module';
 import { SharedModule } from './shared/shared.module';
 import { PrinterModule } from './printer/printer.module';
 import { OtaModule } from './ota/ota.module';
@@ -15,6 +16,7 @@ import { BaseModule } from './base/base.module';
   imports: [
     ScheduleModule.forRoot(),
     ConfigModule.forRoot(),
+    AppConfigModule,
     MiddlewaresModule,
     BaseModule,
     RedisModule,

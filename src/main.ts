@@ -10,9 +10,19 @@ import {
 } from './middlewares/response';
 import { MqttProxyMiddleware } from './middlewares/mqtt-proxy.middleware';
 
+import { APP_CONFIG, type AppConfig } from 'src/config/app.module';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  const port = process.env.PORT ?? 3000;
+  const appConfig = app.get<AppConfig>(APP_CONFIG);
+  const {
+    httpProtocol,
+    domain,
+    port,
+    corsOrigin,
+    corsMethods,
+    corsCredentials,
+  } = appConfig;
   const uploadPath = 'uploads';
 
   //* **************************************************************
@@ -33,10 +43,9 @@ async function bootstrap() {
   //* 启用 CORS
   //* **************************************************************
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*', // 允许的源，默认允许所有
-    methods:
-      process.env.CORS_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // 允许的请求方法，默认允许所有
-    credentials: process.env.CORS_CREDENTIALS === 'true', // 是否允许携带 cookie
+    origin: corsOrigin,
+    methods: corsMethods,
+    credentials: corsCredentials,
     allowedHeaders:
       'Content-Type,Authorization,X-API-Key,Accept,X-Requested-With,X-HTTP-Method-Override,X-File-Name', // 允许的请求头
     exposedHeaders: 'Content-Range,X-Content-Range,X-File-Name', // 暴露的响应头
@@ -92,7 +101,9 @@ async function bootstrap() {
   });
 
   console.log(`Server is running on port ${port}`);
-  console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
+  console.log(
+    `Swagger docs available at ${httpProtocol}://${domain}:${port}/api-docs`,
+  );
   await app.listen(port);
 }
 void bootstrap();
