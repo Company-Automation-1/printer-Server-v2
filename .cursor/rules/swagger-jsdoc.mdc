@@ -8,9 +8,18 @@ alwaysApply: false
 
 项目已开启 `introspectComments`，能用 JSDoc 表达的就不写装饰器。
 
-## DTO / VO / Entity 属性
+## 支持的 JSDoc 标签
 
-用 JSDoc 替代 `@ApiProperty` 的 description、example：
+| 场景 | JSDoc                 | 映射                       |
+| ---- | --------------------- | -------------------------- |
+| 属性 | 首行注释              | `ApiProperty.description`  |
+| 属性 | `@example value`      | `ApiProperty.example`      |
+| 方法 | 首行注释              | `ApiOperation.summary`     |
+| 方法 | `@remarks 文本`       | `ApiOperation.description` |
+| 方法 | `@deprecated`         | 标记废弃                   |
+| 方法 | `@throws {code} 描述` | `ApiResponse`              |
+
+## DTO / VO / Entity 属性
 
 ```typescript
 // ❌ 不用
@@ -25,30 +34,27 @@ roles: string[] = [];
 roles: string[] = [];
 ```
 
-### Enum 类型例外
+### 必须用装饰器的例外
 
-NestJS Swagger 无法从 TypeScript 联合类型自动推断 enum，需用 TypeScript 原生 enum + `@ApiProperty({ enum: XxxEnum })`：
+| 场景     | 原因                   | 写法                                                 |
+| -------- | ---------------------- | ---------------------------------------------------- |
+| enum     | 联合类型无法推断       | `@ApiProperty({ enum: XxxEnum })`                    |
+| nullable | 类型含 null 时无法推断 | `@ApiProperty({ nullable: true })`                   |
+| 文件上传 | 需指定 format          | `@ApiProperty({ type: 'string', format: 'binary' })` |
 
 ```typescript
-// ❌ 联合类型无法被 Swagger 推断
-/** 任务状态 */
-status: 'pending' | 'completed' | 'failed';
-
-// ✅ TypeScript 原生 enum
-export enum TaskStatus {
-  Pending = 'pending',
-  Completed = 'completed',
-  Failed = 'failed',
-}
-
+// enum 必须保留 @ApiProperty
 /** 任务状态 */
 @ApiProperty({ enum: TaskStatus })
 status: TaskStatus;
+
+// 文件字段必须指定 format
+/** 头像文件 */
+@ApiProperty({ type: 'string', format: 'binary' })
+file: Express.Multer.File;
 ```
 
 ## Controller 方法
-
-用 JSDoc 替代 `@ApiOperation`、`@ApiResponse`、`@deprecated`：
 
 ```typescript
 // ❌ 不用
@@ -66,4 +72,18 @@ create() {}
 create() {}
 ```
 
-支持：首行 → summary，`@remarks` → description，`@deprecated`，`@throws {code}` → ApiResponse。
+带详细说明与废弃标记：
+
+```typescript
+/**
+ * 创建任务
+ * @remarks 支持批量创建，单次最多 100 条
+ * @deprecated 请使用 POST /tasks/bulk
+ * @throws {400} 参数校验失败
+ * @throws {404} 设备不存在
+ */
+@Post()
+create() {}
+```
+
+**注意**：复杂响应 schema（如 `allOf`、`$ref`）仍需 `@ApiResponse`，JSDoc 无法表达。
