@@ -13,6 +13,7 @@ import { matchTopic } from '../lib';
 import { MqttService } from '../shared/mqtt.service';
 import {
   SERVER_LOCK,
+  SERVER_REGISTER_STATUS,
   SERVER_OID,
   SERVER_OID_MAC,
   PRINTER_INIT,
@@ -54,11 +55,17 @@ export class PrinterService implements OnModuleInit {
   ) {}
 
   lockPrinter(lockPrinterDto: LockPrinterDto) {
-    this.mqttService.publish(SERVER_LOCK(lockPrinterDto.printerId), 'lock');
+    this.mqttService.publish(SERVER_LOCK(lockPrinterDto.printerId), 'lock', {
+      retain: true,
+    });
   }
 
   unlockPrinter(unlockPrinterDto: UnlockPrinterDto) {
-    this.mqttService.publish(SERVER_LOCK(unlockPrinterDto.printerId), 'unlock');
+    this.mqttService.publish(
+      SERVER_LOCK(unlockPrinterDto.printerId),
+      'unlock',
+      { retain: true },
+    );
   }
 
   async publishOid(dto: OidCallbackDto): Promise<string> {
@@ -179,14 +186,22 @@ export class PrinterService implements OnModuleInit {
     console.log(message.toString());
   }
 
-  private handleRegister(topic: string, message: Buffer) {
+  private async handleRegister(topic: string, message: Buffer) {
     const mac = this.TopicToMac(topic, 1);
     const data = JSON.parse(message.toString()) as PrinterRegisterPayload;
-    this.printerRegisterService.upsertByPrinterId(mac, data.ip).catch((err) => {
+    try {
+      await this.printerRegisterService.upsertByPrinterId(mac, data.ip);
+      const record = await this.printerRegisterService.findByPrinterId(mac);
+      const registered = !!record?.identifier;
+      this.mqttService.publish(
+        SERVER_REGISTER_STATUS(mac),
+        JSON.stringify({ registered }),
+      );
+    } catch (err) {
       this.logger.warn(
         `[${mac}] 注册失败: ${err instanceof Error ? err.message : err}`,
       );
-    });
+    }
   }
 
   private async handleOid(topic: string, message: Buffer) {

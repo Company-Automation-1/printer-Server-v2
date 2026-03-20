@@ -2,10 +2,12 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import QRCode from 'qrcode';
 import { generateSnowflakeId } from 'src/lib';
 import { StorageService } from 'src/shared/storage';
+import { MqttService } from 'src/shared/mqtt.service';
 import { PrinterRegisterRepository } from 'src/repositories';
 import { PrinterRegister } from 'src/entity/printer-register.entity';
 import { CreatePrinterRegisterDto } from './dto/create-printer_register.dto';
 import { APP_CONFIG, type AppConfig } from 'src/config/app.module';
+import { SERVER_REGISTER_STATUS } from 'src/printer/mqtt-topic';
 import { DeleteResult, IsNull, UpdateResult } from 'typeorm';
 import { RegisterPrinterRegisterDto } from './dto/register-printer_register.dto';
 
@@ -14,6 +16,7 @@ export class PrinterRegisterService {
   constructor(
     @Inject(APP_CONFIG) private readonly appConfig: AppConfig,
     private readonly storage: StorageService,
+    private readonly mqttService: MqttService,
     private readonly repo: PrinterRegisterRepository,
   ) {}
 
@@ -66,11 +69,26 @@ export class PrinterRegisterService {
     return this.repo.findById(id);
   }
 
-  update(id: number, dto: RegisterPrinterRegisterDto): Promise<UpdateResult> {
-    return this.repo.update(id, {
+  findByPrinterId(printerId: string): Promise<PrinterRegister | null> {
+    return this.repo.findByPrinterId(printerId);
+  }
+
+  async update(
+    id: number,
+    dto: RegisterPrinterRegisterDto,
+  ): Promise<UpdateResult> {
+    const result = await this.repo.update(id, {
       identifier: dto.identifier,
       updatedAt: this.updatedAt,
     });
+    const record = await this.repo.findById(id);
+    if (record?.printerId) {
+      this.mqttService.publish(
+        SERVER_REGISTER_STATUS(record.printerId),
+        JSON.stringify({ registered: true }),
+      );
+    }
+    return result;
   }
 
   async delete(id: number): Promise<DeleteResult> {

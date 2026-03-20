@@ -16,4 +16,8 @@ export class PrinterRegisterRepository extends BaseRepository<PrinterRegister> {
   async findById(id: number): Promise<PrinterRegister | null> {
     return this.findOne({ where: { id } });
   }
+
+  async findByPrinterId(printerId: string): Promise<PrinterRegister | null> {
+    return this.findOne({ where: { printerId } });
+  }
 }

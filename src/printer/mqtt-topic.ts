@@ -1,5 +1,7 @@
 /** 服务端 → 设备 (publish) */
 export const SERVER_LOCK = (mac: string) => `server/${mac}/lock`;
+export const SERVER_REGISTER_STATUS = (mac: string) =>
+  `server/${mac}/register/status`;
 export const SERVER_OID_MAC = (mac: string) => `server/oid/${mac}`;
 export const SERVER_OID = 'server/oid';
 
