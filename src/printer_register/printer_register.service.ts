@@ -24,7 +24,7 @@ export class PrinterRegisterService {
   private updatedAt = Math.floor(Date.now() / 1000);
 
   async create(dto: CreatePrinterRegisterDto): Promise<PrinterRegister> {
-    const { lanIp, printerId } = dto;
+    const { lanIp, printerId, serial } = dto;
     const uuid = generateSnowflakeId();
     const { httpProtocol, domain, port } = this.appConfig;
     const redirectUrl = `${httpProtocol}://${domain}:${port}/printer-register/302/${uuid}`;
@@ -53,6 +53,7 @@ export class PrinterRegisterService {
       uuid,
       lanIp,
       printerId,
+      serial,
       qrKey,
       qrUrl,
       createdAt: this.createdAt,
@@ -101,13 +102,14 @@ export class PrinterRegisterService {
   async upsertByPrinterId(
     printerId: string,
     lanIp: string,
+    serial: string,
   ): Promise<PrinterRegister | null> {
     const result = await this.repo.update(
       { printerId },
-      { lanIp, updatedAt: this.updatedAt },
+      { lanIp, serial, updatedAt: this.updatedAt },
     );
     if ((result.affected ?? 0) > 0) return null;
-    return this.create({ printerId, lanIp });
+    return this.create({ printerId, lanIp, serial });
   }
 
   findUnregistered(): Promise<PrinterRegister[]> {

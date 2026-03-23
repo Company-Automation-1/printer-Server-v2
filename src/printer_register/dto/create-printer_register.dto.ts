@@ -12,4 +12,10 @@ export class CreatePrinterRegisterDto {
   @IsNotEmpty()
   @MaxLength(50)
   printerId: string;
+
+  /** 打印机序列号 */
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  serial: string;
 }

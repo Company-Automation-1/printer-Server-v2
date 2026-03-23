@@ -24,4 +24,5 @@ export interface PrinterDataPayload {
 
 export interface PrinterRegisterPayload {
   ip: string;
+  serial: string;
 }

@@ -190,7 +190,11 @@ export class PrinterService implements OnModuleInit {
     const mac = this.TopicToMac(topic, 1);
     const data = JSON.parse(message.toString()) as PrinterRegisterPayload;
     try {
-      await this.printerRegisterService.upsertByPrinterId(mac, data.ip);
+      await this.printerRegisterService.upsertByPrinterId(
+        mac,
+        data.ip,
+        data.serial,
+      );
       const record = await this.printerRegisterService.findByPrinterId(mac);
       const registered = !!record?.identifier;
       this.mqttService.publish(

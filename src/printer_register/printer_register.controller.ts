@@ -9,6 +9,7 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { join } from 'path';
 import {
   ApiTags,
   ApiResponse,
@@ -34,6 +35,12 @@ const affectedSchema = {
 export class PrinterRegisterController extends BaseController {
   constructor(private readonly printerRegisterService: PrinterRegisterService) {
     super();
+  }
+
+  /** 二维码展示页 */
+  @Get('page')
+  page(@Res() res: Response) {
+    return res.sendFile(join(__dirname, '..', 'web', 'printer_register.html'));
   }
 
   /** 获取全部注册记录 */

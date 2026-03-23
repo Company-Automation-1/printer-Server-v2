@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>打印机注册</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 16px;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: 1.25rem;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+        min-width: 160px;
+      }
+      .card img {
+        width: 120px;
+        height: 120px;
+        display: block;
+        margin: 0 auto 8px;
+      }
+      .card div {
+        font-size: 12px;
+        color: #666;
+        margin: 2px 0;
+      }
+      .card input {
+        width: 100%;
+        padding: 4px 8px;
+        margin: 4px 0;
+        box-sizing: border-box;
+        height: 28px;
+      }
+      .card button {
+        padding: 4px 12px;
+        height: 28px;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .card button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .card .info {
+        padding: 0 8px;
+      }
+      .card .edit-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .card .edit-row input {
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">加载中...</div>
+
+    <script>
+      (async () => {
+        const app = document.getElementById('app');
+        try {
+          const res = await fetch('/printer-register');
+          if (!res.ok) throw new Error(res.statusText);
+          const list = (await res.json())?.data ?? [];
+          if (!list.length) {
+            app.textContent = '暂无记录';
+            return;
+          }
+          app.className = 'grid';
+          app.innerHTML = list
+            .map((r) => {
+              const hasId = r.identifier?.trim();
+              return `<div class="card">
+            <img src="${r.qrUrl}" alt="">
+            <div class="info">
+              ${hasId ? `<div><b>标识:</b> ${r.identifier}</div>` : `<div class="edit-row"><input placeholder="标识" data-id="${r.id}"><button data-id="${r.id}">保存</button></div>`}
+              ${r.printerId ? `<div><b>MAC:</b> ${r.printerId}</div>` : ''}
+              ${r.serial ? `<div><b>序列号:</b> ${r.serial}</div>` : ''}
+              ${r.lanIp ? `<div><b>IP:</b> ${r.lanIp}</div>` : ''}
+            </div>
+          </div>`;
+            })
+            .join('');
+          app.querySelectorAll('button[data-id]').forEach((btn) => {
+            btn.onclick = async () => {
+              const id = btn.dataset.id;
+              const val = app
+                .querySelector(`input[data-id="${id}"]`)
+                ?.value?.trim();
+              if (!val) return;
+              btn.disabled = true;
+              try {
+                const r = await fetch(`/printer-register/${id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ identifier: val }),
+                });
+                if (!r.ok) throw new Error(r.statusText);
+                location.reload();
+              } catch (e) {
+                alert('失败: ' + e.message);
+              } finally {
+                btn.disabled = false;
+              }
+            };
+          });
+        } catch (e) {
+          app.textContent = '加载失败: ' + e.message;
+        }
+      })();
+    </script>
+  </body>
+</html>
