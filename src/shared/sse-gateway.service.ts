@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
+import { AppLogger, type ScopedAppLogger } from './logger';
 
 /**
  * SseClient is a class that represents a client connected to the SSE gateway.
@@ -16,8 +17,12 @@ interface SseClient {
 
 @Injectable()
 export class SseGatewayService {
-  private readonly logger = new Logger(SseGatewayService.name);
+  private readonly log: ScopedAppLogger;
   private readonly clients = new Map<string, SseClient>();
+
+  constructor(appLogger: AppLogger) {
+    this.log = appLogger.forContext(SseGatewayService.name);
+  }
 
   /**
    * Adds a client to the SSE gateway.
@@ -40,7 +45,7 @@ export class SseGatewayService {
       createdAt: new Date(),
     });
 
-    this.logger.log(
+    this.log.log(
       `SSE client connected: ${clientId}, channel: ${channel}, total: ${this.clients.size}`,
     );
 
@@ -61,7 +66,7 @@ export class SseGatewayService {
   removeClient(clientId: string): void {
     if (this.clients.has(clientId)) {
       this.clients.delete(clientId);
-      this.logger.log(
+      this.log.log(
         `SSE client disconnected: ${clientId}, total: ${this.clients.size}`,
       );
     }
@@ -82,7 +87,7 @@ export class SseGatewayService {
       const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
       client.response.write(message);
     } catch (error) {
-      this.logger.error(
+      this.log.error(
         `Failed to send message to client ${clientId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       this.removeClient(clientId);
@@ -105,7 +110,7 @@ export class SseGatewayService {
       try {
         client.response.write(message);
       } catch (error) {
-        this.logger.error(
+        this.log.error(
           `Failed to broadcast to client ${clientId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
         this.removeClient(clientId);

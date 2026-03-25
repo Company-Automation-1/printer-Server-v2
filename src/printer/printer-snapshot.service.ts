@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
+import { AppLogger, type ScopedAppLogger } from 'src/shared/logger';
 
 const SNAPSHOT_SQL_ALL = `
 INSERT INTO pre_printer_monthly (
@@ -104,9 +105,14 @@ ON DUPLICATE KEY UPDATE
 
 @Injectable()
 export class PrinterSnapshotService {
-  private readonly logger = new Logger(PrinterSnapshotService.name);
+  private readonly log: ScopedAppLogger;
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.forContext(PrinterSnapshotService.name);
+  }
 
   /** 每月 1 号 00:05 执行，截取上月月末快照 */
   @Cron('5 0 1 * *')
@@ -138,10 +144,10 @@ export class PrinterSnapshotService {
       params,
     );
     if (cnt === 0) {
-      this.logger.log(`[${year}-${month}] 无设备数据，跳过`);
+      this.log.log(`[${year}-${month}] 无设备数据，跳过`);
       return;
     }
-    this.logger.log(`[${year}-${month}] 快照完成，${cnt} 台设备`);
+    this.log.log(`[${year}-${month}] 快照完成，${cnt} 台设备`);
   }
 
   private getLastMonth(): { year: number; month: number } {

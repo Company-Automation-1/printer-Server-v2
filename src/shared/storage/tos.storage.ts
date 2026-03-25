@@ -1,15 +1,19 @@
-import { Logger } from '@nestjs/common';
 import { TosClient } from '@volcengine/tos-sdk';
+import type { AppLogger, ScopedAppLogger } from '../logger';
 import { randomUUID } from 'crypto';
 import type { Storage } from './storage';
 import type { StorageConfig } from './storage.config';
 
 export class TosStorage implements Storage {
-  private readonly logger = new Logger(TosStorage.name);
+  private readonly log: ScopedAppLogger;
   private readonly client: TosClient;
   private readonly bucket: string;
 
-  constructor(private readonly config: StorageConfig) {
+  constructor(
+    private readonly config: StorageConfig,
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.forContext(TosStorage.name);
     const { accessKey, secretKey, endpoint, region } = config;
     if (!accessKey || !secretKey || !endpoint || !region) {
       throw new Error('TOS requires accessKey, secretKey, endpoint and region');
@@ -39,7 +43,7 @@ export class TosStorage implements Storage {
       body: file.buffer,
       contentType: file.mimetype,
     });
-    this.logger.log(`File uploaded: ${objectName}`);
+    this.log.log(`File uploaded: ${objectName}`);
     return objectName;
   }
 
@@ -48,7 +52,7 @@ export class TosStorage implements Storage {
       bucket: this.bucket,
       key,
     });
-    this.logger.log(`File deleted: ${key}`);
+    this.log.log(`File deleted: ${key}`);
   }
 
   getUrl(key: string): string {

@@ -11,9 +11,11 @@ import {
 import { MqttProxyMiddleware } from './middlewares/mqtt-proxy.middleware';
 
 import { APP_CONFIG, type AppConfig } from 'src/config/app.module';
+import { AppLogger } from 'src/shared/logger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const log = app.get(AppLogger).forContext('Bootstrap');
   const appConfig = app.get<AppConfig>(APP_CONFIG);
   const {
     httpProtocol,
@@ -100,10 +102,10 @@ async function bootstrap() {
     },
   });
 
-  console.log(`Server is running on port ${port}`);
-  console.log(
+  await app.listen(port);
+  log.verbose(`Server is running on port ${port}`);
+  log.verbose(
     `Swagger docs available at ${httpProtocol}://${domain}:${port}/api-docs`,
   );
-  await app.listen(port);
 }
 void bootstrap();

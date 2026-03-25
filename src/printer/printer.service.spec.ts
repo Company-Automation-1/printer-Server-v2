@@ -5,6 +5,15 @@ import { SseGatewayService } from '../shared/sse-gateway.service';
 import { PrinterRepository } from '../repositories';
 import { PrinterRegisterService } from '../printer_register/printer_register.service';
 import { PrinterService } from './printer.service';
+import { AppLogger } from '../shared/logger';
+
+const scopedLog = {
+  log: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+  verbose: jest.fn(),
+};
 
 describe('PrinterService', () => {
   let service: PrinterService;
@@ -13,6 +22,10 @@ describe('PrinterService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PrinterService,
+        {
+          provide: AppLogger,
+          useValue: { forContext: () => scopedLog },
+        },
         {
           provide: MqttService,
           useValue: {

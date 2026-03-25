@@ -1,4 +1,4 @@
-import { Module, Global, Logger } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { StorageConfig, StorageType } from './storage.config';
 import type { Storage } from './storage';
 import { StorageService } from './storage.service';
@@ -7,6 +7,7 @@ import { MinioStorage } from './minio.storage';
 import { TosStorage } from './tos.storage';
 import { StorageConfigModule } from '../../config/storage.module';
 import { STORAGE } from './storage.tokens';
+import { AppLogger } from '../logger';
 
 /**
  * 全局存储模块
@@ -22,17 +23,18 @@ import { STORAGE } from './storage.tokens';
   providers: [
     {
       provide: STORAGE,
-      useFactory: (config: StorageConfig): Storage => {
-        const logger = new Logger('StorageModule');
-        logger.log(`Initializing storage: ${config.type}`);
+      useFactory: (config: StorageConfig, appLogger: AppLogger): Storage => {
+        appLogger
+          .forContext('StorageModule')
+          .log(`Initializing storage: ${config.type}`);
 
         switch (config.type) {
           case StorageType.LOCAL:
-            return new LocalStorage(config);
+            return new LocalStorage(config, appLogger);
           case StorageType.MINIO:
-            return new MinioStorage(config);
+            return new MinioStorage(config, appLogger);
           case StorageType.TOS:
-            return new TosStorage(config);
+            return new TosStorage(config, appLogger);
           case StorageType.OSS:
           case StorageType.S3:
             throw new Error(
@@ -42,7 +44,7 @@ import { STORAGE } from './storage.tokens';
             throw new Error(`Unknown storage type: ${config.type as string}`);
         }
       },
-      inject: ['STORAGE_CONFIG'],
+      inject: ['STORAGE_CONFIG', AppLogger],
     },
     StorageService,
   ],

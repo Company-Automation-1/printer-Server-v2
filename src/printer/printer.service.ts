@@ -1,7 +1,6 @@
 import {
   Injectable,
   OnModuleInit,
-  Logger,
   NotFoundException,
   Inject,
 } from '@nestjs/common';
@@ -32,6 +31,7 @@ import {
   PrinterInitPayload,
   PrinterRegisterPayload,
 } from './topic.payload.type';
+import { AppLogger, type ScopedAppLogger } from 'src/shared/logger';
 
 const OID_CALLBACK_TTL = 30_000; // 30s
 const OID_CALLBACK_PREFIX = 'oid:callback:';
@@ -44,7 +44,7 @@ interface OidCallbackRecord {
 
 @Injectable()
 export class PrinterService implements OnModuleInit {
-  private readonly logger = new Logger(PrinterService.name);
+  private readonly log: ScopedAppLogger;
 
   constructor(
     private readonly mqttService: MqttService,
@@ -52,7 +52,10 @@ export class PrinterService implements OnModuleInit {
     private readonly printerRepository: PrinterRepository,
     private readonly printerRegisterService: PrinterRegisterService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
-  ) {}
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.forContext(PrinterService.name);
+  }
 
   lockPrinter(lockPrinterDto: LockPrinterDto) {
     this.mqttService.publish(SERVER_LOCK(lockPrinterDto.printerId), 'lock', {
@@ -144,16 +147,16 @@ export class PrinterService implements OnModuleInit {
   private handleInit(topic: string, message: Buffer) {
     const mac = this.TopicToMac(topic, 1);
     const data = JSON.parse(message.toString()) as PrinterInitPayload;
-    console.log(`[${mac}] ${JSON.stringify(data)}`);
+    this.log.debug(`[${mac}] ${JSON.stringify(data)}`);
   }
 
   private handleStatus(topic: string, message: Buffer) {
     const mac = this.TopicToMac(topic, 1);
     const status = message.toString().trim();
     if (status === 'online') {
-      console.log(`${mac} 打印机在线`);
+      this.log.debug(`${mac} 打印机在线`);
     } else if (status === 'offline') {
-      console.log(`${mac} 打印机离线`);
+      this.log.debug(`${mac} 打印机离线`);
     }
   }
 
@@ -176,14 +179,13 @@ export class PrinterService implements OnModuleInit {
       },
       ['printerId'],
     );
-    // this.logger.debug(`[${data.mac}] data saved`);
-    console.log(`[${mac}] ${JSON.stringify(data)}`);
+    // this.log.debug(`[${data.mac}] data saved`);
+    this.log.debug(`[${mac}] ${JSON.stringify(data)}`);
   }
 
   private handleLock(topic: string, message: Buffer) {
     const mac = this.TopicToMac(topic, 1);
-    console.log(mac);
-    console.log(message.toString());
+    this.log.debug(`[${mac}] ${message.toString()}`);
   }
 
   private async handleRegister(topic: string, message: Buffer) {
@@ -202,7 +204,7 @@ export class PrinterService implements OnModuleInit {
         JSON.stringify({ registered }),
       );
     } catch (err) {
-      this.logger.warn(
+      this.log.warn(
         `[${mac}] 注册失败: ${err instanceof Error ? err.message : err}`,
       );
     }
@@ -218,14 +220,14 @@ export class PrinterService implements OnModuleInit {
     const oidResults = (raw.results ?? raw) as Record<string, string>;
 
     if (!requestId) {
-      this.logger.debug(`[${mac}] OID 无 requestId，跳过回调`);
+      this.log.debug(`[${mac}] OID 无 requestId，跳过回调`);
       return;
     }
 
     const key = `${OID_CALLBACK_PREFIX}${requestId}`;
     const record = await this.cache.get<OidCallbackRecord>(key);
     if (!record?.callback) {
-      this.logger.debug(`[${mac}] OID requestId=${requestId} 已过期或不存在`);
+      this.log.debug(`[${mac}] OID requestId=${requestId} 已过期或不存在`);
       return;
     }
 
@@ -252,7 +254,7 @@ export class PrinterService implements OnModuleInit {
         timeout: 10_000,
       });
     } catch (err) {
-      this.logger.warn(
+      this.log.warn(
         `OID 回调失败 requestId=${requestId} mac=${mac}: ${err instanceof Error ? err.message : err}`,
       );
     }
@@ -271,7 +273,7 @@ export class PrinterService implements OnModuleInit {
     const topics = this.topicHandlers.map((h) => h.pattern);
     const subscribe = () => {
       this.mqttService.subscribe(topics);
-      this.logger.log(`Subscribed to MQTT topics: ${topics.join(', ')}`);
+      this.log.log(`Subscribed to MQTT topics: ${topics.join(', ')}`);
     };
 
     if (this.mqttService.connected) subscribe();
@@ -284,7 +286,7 @@ export class PrinterService implements OnModuleInit {
         );
         if (handler) void handler.handle(topic, message);
       } catch (error) {
-        this.logger.error(
+        this.log.error(
           `Failed to process MQTT message: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }

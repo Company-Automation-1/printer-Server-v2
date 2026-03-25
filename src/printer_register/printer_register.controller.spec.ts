@@ -6,6 +6,7 @@ import { PrinterRegisterRepository } from '../repositories/printer-register.repo
 import { ResponseService } from '../middlewares/response';
 import { BaseService } from '../base/base.service';
 import { APP_CONFIG } from '../config/app.module';
+import { MqttService } from '../shared/mqtt.service';
 
 describe('PrinterRegisterController', () => {
   let controller: PrinterRegisterController;
@@ -20,6 +21,7 @@ describe('PrinterRegisterController', () => {
           useValue: { httpProtocol: 'http', domain: 'localhost', port: 3000 },
         },
         { provide: StorageService, useValue: {} },
+        { provide: MqttService, useValue: { publish: jest.fn() } },
         { provide: PrinterRegisterRepository, useValue: {} },
         { provide: ResponseService, useValue: {} },
         { provide: BaseService, useValue: {} },

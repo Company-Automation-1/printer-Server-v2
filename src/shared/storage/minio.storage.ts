@@ -1,5 +1,5 @@
-import { Logger } from '@nestjs/common';
 import * as Minio from 'minio';
+import type { AppLogger, ScopedAppLogger } from '../logger';
 import { randomUUID } from 'crypto';
 import type { Storage } from './storage';
 import type { StorageConfig } from './storage.config';
@@ -15,11 +15,15 @@ function parseEndpoint(endpoint: string): { host: string; port: number } {
 }
 
 export class MinioStorage implements Storage {
-  private readonly logger = new Logger(MinioStorage.name);
+  private readonly log: ScopedAppLogger;
   private readonly client: Minio.Client;
   private readonly bucket: string;
 
-  constructor(private readonly config: StorageConfig) {
+  constructor(
+    private readonly config: StorageConfig,
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.forContext(MinioStorage.name);
     const { accessKey, secretKey, endpoint, ssl } = config;
     if (!accessKey || !secretKey || !endpoint) {
       throw new Error('MinIO requires accessKey, secretKey and endpoint');
@@ -52,13 +56,13 @@ export class MinioStorage implements Storage {
       file.size,
       { 'Content-Type': file.mimetype },
     );
-    this.logger.log(`File uploaded: ${objectName}`);
+    this.log.log(`File uploaded: ${objectName}`);
     return objectName;
   }
 
   async delete(key: string): Promise<void> {
     await this.client.removeObject(this.bucket, key);
-    this.logger.log(`File deleted: ${key}`);
+    this.log.log(`File deleted: ${key}`);
   }
 
   getUrl(key: string): string {

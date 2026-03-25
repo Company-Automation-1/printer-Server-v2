@@ -1,5 +1,5 @@
-import { Logger } from '@nestjs/common';
 import { existsSync, mkdirSync } from 'fs';
+import type { AppLogger, ScopedAppLogger } from '../logger';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
@@ -10,14 +10,18 @@ import type { StorageConfig } from './storage.config';
  * 本地存储实现类
  */
 export class LocalStorage implements Storage {
-  private readonly logger = new Logger(LocalStorage.name);
+  private readonly log: ScopedAppLogger;
   private readonly rootPath: string;
 
   /**
    * 构造函数
    * @param config - 存储配置
    */
-  constructor(private readonly config: StorageConfig) {
+  constructor(
+    private readonly config: StorageConfig,
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.forContext(LocalStorage.name);
     this.rootPath = config.bucket; // 根目录为存储桶名
     this.ensureRootDirectoryExists();
   }
@@ -63,7 +67,7 @@ export class LocalStorage implements Storage {
     await fs.writeFile(filePath, file.buffer);
 
     const key = `${directory}/${filename}`;
-    this.logger.log(`File uploaded: ${key}`);
+    this.log.log(`File uploaded: ${key}`);
     return key;
   }
 
@@ -71,7 +75,7 @@ export class LocalStorage implements Storage {
     const filePath = join(this.rootPath, key);
     try {
       await fs.unlink(filePath);
-      this.logger.log(`File deleted: ${key}`);
+      this.log.log(`File deleted: ${key}`);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         throw error;

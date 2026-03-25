@@ -3,19 +3,24 @@ import {
   Inject,
   OnModuleDestroy,
   OnModuleInit,
-  Logger,
 } from '@nestjs/common';
 import {
   MqttClient,
   IClientPublishOptions,
   IClientSubscribeOptions,
 } from 'mqtt';
+import { AppLogger, type ScopedAppLogger } from './logger';
 
 @Injectable()
 export class MqttService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(MqttService.name);
+  private readonly log: ScopedAppLogger;
 
-  constructor(@Inject('MQTT_CLIENT') private readonly client: MqttClient) {}
+  constructor(
+    @Inject('MQTT_CLIENT') private readonly client: MqttClient,
+    appLogger: AppLogger,
+  ) {
+    this.log = appLogger.forContext(MqttService.name);
+  }
 
   publish(
     topic: string,
@@ -62,31 +67,31 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   // 当宿主模块的依赖项已解析完成时调用
   onModuleInit(): void {
     this.client.on('connect', () => {
-      this.logger.log(
+      this.log.log(
         `MQTT connected to broker (clientId: ${this.client.options.clientId})`,
       );
     });
 
     this.client.on('disconnect', () => {
-      this.logger.warn('MQTT 断开连接');
+      this.log.warn('MQTT 断开连接');
     });
 
     this.client.on('error', (error: Error) => {
-      this.logger.error(`MQTT 错误: ${error.message}`, error.stack);
+      this.log.error(`MQTT 错误: ${error.message}`, error.stack);
     });
 
     this.client.on('reconnect', () => {
-      this.logger.log('MQTT 重连中...');
+      this.log.log('MQTT 重连中...');
     });
 
     this.client.on('offline', () => {
-      this.logger.warn('MQTT 离线');
+      this.log.warn('MQTT 离线');
     });
   }
 
   // 在接收到终止信号（例如 SIGTERM）后调用
   onModuleDestroy(): void {
     this.client.end();
-    this.logger.log('MQTT 连接关闭');
+    this.log.log('MQTT 连接关闭');
   }
 }

@@ -3,11 +3,12 @@ import { StorageModule } from './storage/storage.module';
 import { MqttModule } from '../config/mqtt.module';
 import { MqttService } from './mqtt.service';
 import { SseGatewayService } from './sse-gateway.service';
+import { LoggerModule } from './logger';
 
 @Global()
 @Module({
-  imports: [MqttModule, StorageModule],
+  imports: [LoggerModule, MqttModule, StorageModule],
   providers: [MqttService, SseGatewayService],
-  exports: [MqttService, SseGatewayService, StorageModule],
+  exports: [MqttService, SseGatewayService, StorageModule, LoggerModule],
 })
 export class SharedModule {}
