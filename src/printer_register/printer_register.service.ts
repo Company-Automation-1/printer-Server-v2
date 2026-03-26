@@ -7,7 +7,7 @@ import { PrinterRegisterRepository } from 'src/repositories';
 import { PrinterRegister } from 'src/entity/printer-register.entity';
 import { CreatePrinterRegisterDto } from './dto/create-printer_register.dto';
 import { APP_CONFIG, type AppConfig } from 'src/config/app.module';
-import { SERVER_REGISTER_STATUS } from 'src/printer/mqtt-topic';
+import { SERVER_LOCK, SERVER_REGISTER_STATUS } from 'src/printer/mqtt-topic';
 import { DeleteResult, IsNull, UpdateResult } from 'typeorm';
 import { RegisterPrinterRegisterDto } from './dto/register-printer_register.dto';
 
@@ -84,10 +84,12 @@ export class PrinterRegisterService {
     });
     const record = await this.repo.findById(id);
     if (record?.printerId) {
+      const mac = record.printerId;
       this.mqttService.publish(
-        SERVER_REGISTER_STATUS(record.printerId),
+        SERVER_REGISTER_STATUS(mac),
         JSON.stringify({ registered: true }),
       );
+      this.mqttService.publish(SERVER_LOCK(mac), 'unlock', { retain: true });
     }
     return result;
   }
